@@ -4,6 +4,8 @@ from app.models.base import BaseModel
 from app.models.user import User
 from app.models.progress import UserProgress, UserStreak
 from app.models.achievement import Achievement, UserAchievement
+from app.models.vocabulary_cache import VocabularyCache
+from app.models.game_question import GameQuestion
 
 __all__ = [
     "BaseModel",
@@ -12,4 +14,7 @@ __all__ = [
     "UserStreak",
     "Achievement",
     "UserAchievement",
+    "VocabularyCache",
+    "GameQuestion",
 ]
+

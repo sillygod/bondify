@@ -188,3 +188,346 @@ Identify all grammar issues, awkward phrasing, and clarity problems.
 Provide at least 3 rephrasing options for different contexts.
 If the sentence is already correct, return empty issues array but still provide alternative phrasings.
 Return ONLY valid JSON, no other text."""
+
+# =============================================================================
+# Game Question Generation Prompts
+# =============================================================================
+
+CLARITY_QUESTION_PROMPT = """Generate {count} English clarity practice questions.
+
+Each question should have a sentence with a wordy/redundant phrase that can be simplified.
+
+Return a JSON array with exactly this structure:
+[
+  {{
+    "sentence": "Due to the fact that it was raining, we stayed inside.",
+    "wordyPart": {{
+      "startIndex": 0,
+      "text": "Due to the fact that"
+    }},
+    "options": ["Because", "Since", "As a result of the situation where"],
+    "correctOption": "Because",
+    "reason": "'Due to the fact that' is wordy. Simply use 'Because' for clarity."
+  }}
+]
+
+Requirements:
+- Create diverse sentence topics (work, daily life, academic, technology, etc.)
+- wordyPart.startIndex must be the exact character position where the wordy phrase starts
+- options must have exactly 3 choices: 2 good alternatives and 1 obviously wrong/wordier option
+- correctOption must be the best, most concise replacement
+- reason should explain why the original is wordy and why the answer is better
+
+Return ONLY valid JSON array, no other text."""
+
+TRANSITIONS_QUESTION_PROMPT = """Generate {count} English transition word practice questions.
+
+Each question should have a paragraph with a blank where a transition word should go.
+
+Return a JSON array with exactly this structure:
+[
+  {{
+    "paragraph": "The project was delayed by several weeks. ______, we managed to deliver it on time by working overtime.",
+    "options": ["However", "Moreover", "Therefore", "Although"],
+    "correctOption": "However",
+    "reason": "'However' shows contrast between the delay and the successful delivery."
+  }}
+]
+
+Requirements:
+- Create realistic, professional contexts
+- options must have exactly 4 transition words
+- Include various transition types: contrast, addition, cause/effect, sequence
+- correctOption must logically fit the sentence context
+- reason should explain why this transition word is appropriate
+
+Return ONLY valid JSON array, no other text."""
+
+BREVITY_QUESTION_PROMPT = """Generate {count} English brevity practice questions.
+
+Each question should present a verbose sentence and ask for a more concise version.
+
+Return a JSON array with exactly this structure:
+[
+  {{
+    "originalSentence": "At this point in time, we are not in a position to make a decision.",
+    "options": ["We cannot decide now.", "At this moment we are unable to make decisions.", "We are currently not positioned to decide."],
+    "correctOption": "We cannot decide now.",
+    "reason": "Removes redundant phrases like 'at this point in time' and 'in a position to' for clearer expression."
+  }}
+]
+
+Requirements:
+- Create sentences with common verbose patterns (e.g., "in order to", "the fact that", "at this point in time")
+- options must have 3 choices: 1 best concise version, 1 decent but not optimal, 1 still verbose
+- correctOption must be the most concise while maintaining meaning
+- reason should explain the wordiness issues fixed
+
+Return ONLY valid JSON array, no other text."""
+
+CONTEXT_QUESTION_PROMPT = """Generate {count} vocabulary-in-context questions.
+
+Each question should have a sentence with a blank where a vocabulary word fits.
+
+Return a JSON array with exactly this structure:
+[
+  {{
+    "sentence": "The new app became _____ in our daily lives; everyone seemed to use it constantly.",
+    "correctWord": "ubiquitous",
+    "options": ["ubiquitous", "ephemeral", "meticulous", "benevolent"],
+    "explanation": "Ubiquitous means 'present everywhere,' fitting the context of something everyone uses constantly."
+  }}
+]
+
+Requirements:
+- Use intermediate to advanced vocabulary words (GRE/TOEFL level)
+- Sentence context should make the correct answer clear
+- options must have exactly 4 vocabulary words
+- All options should be real English words at similar difficulty level
+- explanation should explain why the word fits the context
+
+Return ONLY valid JSON array, no other text."""
+
+DICTION_QUESTION_PROMPT = """Generate {count} diction (word choice) questions.
+
+Each question tests whether a word or phrase is used correctly in a sentence.
+
+Return a JSON array with exactly this structure:
+[
+  {{
+    "sentence": "I could care less about what he thinks.",
+    "highlightedPart": {{
+      "startIndex": 2,
+      "text": "could care less"
+    }},
+    "isCorrect": false,
+    "correctVersion": "couldn't care less",
+    "category": "idiom",
+    "explanation": "The correct phrase is 'couldn't care less,' meaning you care so little that it's impossible to care any less."
+  }}
+]
+
+Requirements:
+- Mix of correct and incorrect usages (roughly 30% correct, 70% incorrect)
+- category must be one of: "vocabulary", "grammar", "idiom", "preposition", "word-choice"
+- highlightedPart.startIndex must be the exact character position
+- For correct usages, omit correctVersion field
+- Common errors: affect/effect, less/fewer, lie/lay, their/there/they're, etc.
+
+Return ONLY valid JSON array, no other text."""
+
+PUNCTUATION_QUESTION_PROMPT = """Generate {count} punctuation practice questions.
+
+Each question has a sentence with blanks where punctuation marks should go.
+
+Return a JSON array with exactly this structure:
+[
+  {{
+    "sentence": "The dog wagged ___ tail happily.",
+    "blanks": [
+      {{ "options": ["its", "it's", "its'"], "correctIndex": 0 }}
+    ],
+    "punctuationType": "apostrophe",
+    "explanation": "'Its' is possessive. 'It's' means 'it is' or 'it has'."
+  }}
+]
+
+Requirements:
+- punctuationType must be one of: "apostrophe", "comma", "hyphen", "semicolon", "colon"
+- blanks array can have multiple blanks for the same sentence
+- Each blank has options array and correctIndex (0-based)
+- Focus on common punctuation mistakes
+- explanation should teach the rule
+
+Return ONLY valid JSON array, no other text."""
+
+LISTENING_QUESTION_PROMPT = """Generate {count} conversation comprehension questions.
+
+Each question presents a dialogue and asks what the best response would be.
+
+Return a JSON array with exactly this structure:
+[
+  {{
+    "category": "casual",
+    "conversation": [
+      {{ "speaker": "Person A", "text": "Hey, do you want to grab some coffee later?" }},
+      {{ "speaker": "Person B", "text": "I'd love to, but I have a dentist appointment at 3." }}
+    ],
+    "question": "What is the best response from Person A?",
+    "options": [
+      "No problem! How about tomorrow instead?",
+      "You should cancel your appointment.",
+      "I don't like dentists either."
+    ],
+    "correctAnswer": 0,
+    "explanation": "The best response acknowledges the conflict and offers an alternative, showing flexibility and consideration."
+  }}
+]
+
+Requirements:
+- category must be "casual" or "professional"
+- conversation should be 2-3 exchanges between speakers
+- options must have exactly 3 responses
+- correctAnswer is the 0-based index of the best response
+- Focus on appropriate social/professional communication
+
+Return ONLY valid JSON array, no other text."""
+
+SPEED_READING_QUESTION_PROMPT = """Generate 1 reading comprehension article with {count} paragraphs.
+
+Each paragraph should have a comprehension question.
+
+Return a JSON object with exactly this structure:
+{{
+  "title": "The Power of Sleep",
+  "paragraphs": [
+    {{
+      "text": "Sleep is one of the most important factors in maintaining good health...",
+      "question": {{
+        "text": "According to the passage, what happens during sleep?",
+        "options": [
+          "The brain stops all activity",
+          "The body repairs tissues and consolidates memories",
+          "Heart rate increases significantly",
+          "Appetite hormones are suppressed"
+        ],
+        "correctIndex": 1
+      }}
+    }}
+  ]
+}}
+
+Requirements:
+- Article should be 200-400 words across all paragraphs
+- Topics: science, technology, health, environment, history, economics
+- Each paragraph should be 80-150 words
+- Questions should test comprehension, not just memory
+- options must have exactly 4 choices
+- correctIndex is 0-based
+
+Return ONLY valid JSON object, no other text."""
+
+WORD_PARTS_QUESTION_PROMPT = """Generate {count} word etymology questions.
+
+Each question should present a word and break it down into prefix, root, and suffix.
+
+Return a JSON array with exactly this structure:
+[
+  {{
+    "word": "synchronize",
+    "meaning": "cause to occur at the same time",
+    "parts": [
+      {{"type": "prefix", "value": "syn-", "meaning": "together"}},
+      {{"type": "root", "value": "chron", "meaning": "time"}},
+      {{"type": "suffix", "value": "-ize", "meaning": "verb ending"}}
+    ],
+    "targetPartIndex": 0,
+    "options": ["syn-", "anti-", "co-", "pre-"] 
+  }}
+]
+
+Requirements:
+- Words must have at least one clearly identifiable part (prefix, root, or suffix)
+- parts array must contain all morphological components
+- type must be "prefix", "root", or "suffix"
+- targetPartIndex is the index of the part to be quizzed
+- options must include the correct target part value and 3 distractors of the SAME type (e.g., all prefixes)
+- Distractors should be real morphological parts
+
+Return ONLY valid JSON array, no other text."""
+
+ROCKET_QUESTION_PROMPT = """Generate {count} synonym practice questions.
+
+Each question offers a target word and asks to identify a synonym.
+
+Return a JSON array with exactly this structure:
+[
+  {{
+    "word": "ubiquitous",
+    "meaning": "present, appearing, or found everywhere",
+    "correctSynonym": "omnipresent",
+    "options": ["omnipresent", "ephemeral", "meticulous", "benevolent"]
+  }}
+]
+
+Requirements:
+- Use intermediate to advanced vocabulary words
+- correctSynonym must be a true synonym
+- options must include the correct synonym and 3 plausible distractors
+- Distractors should be real words of similar difficulty but different meaning
+
+Return ONLY valid JSON array, no other text."""
+
+REPHRASE_QUESTION_PROMPT = """Generate {count} rephrasing challenge questions.
+
+Each question asks the user to improve a sentence or paragraph.
+
+Return a JSON array with exactly this structure:
+[
+  {{
+    "type": "conjunction",
+    "level": 1,
+    "context": "He was tired. He went to bed early.",
+    "targetSentence": "Combine using a conjunction",
+    "options": ["He was tired, so he went to bed early.", "He was tired because he went to bed early.", "He was tired but he went to bed early.", "He was tired if he went to bed early."],
+    "correctAnswer": "He was tired, so he went to bed early.",
+    "explanation": "'So' correctly shows the cause-and-effect relationship."
+  }}
+]
+
+Requirements:
+- type must be one of: "conjunction", "reorder", "rephrase", "combine"
+- level must be 1 (easy), 2 (medium), or 3 (hard)
+- options must have exactly 4 choices
+- correctAnswer must be one of the options
+- explanation should explain why the answer is the best improvement
+
+Return ONLY valid JSON array, no other text."""
+
+RECALL_QUESTION_PROMPT = """Generate {count} vocabulary recall questions.
+
+Each question provides a definition and asks for the word.
+
+Return a JSON array with exactly this structure:
+[
+  {{
+    "word": "ephemeral",
+    "meaning": "lasting for a very short time",
+    "partOfSpeech": "adjective"
+  }}
+]
+
+Requirements:
+- Use intermediate to advanced vocabulary words (GRE/TOEFL level)
+- meaning should be clear and precise
+- partOfSpeech must be correct (noun, verb, adjective, adverb)
+
+Return ONLY valid JSON array, no other text."""
+
+ATTENTION_QUESTION_PROMPT = """Generate 1 audio comprehension article with categorization task.
+
+Return a JSON object with exactly this structure:
+{{
+  "title": "Forest Ecosystems",
+  "audioText": "Forests are complex ecosystems with distinct layers. The canopy is the top layer...",
+  "mainBubbles": [
+    {{ "id": "canopy", "text": "Canopy Layer", "color": "purple" }},
+    {{ "id": "floor", "text": "Forest Floor", "color": "orange" }},
+    {{ "id": "understory", "text": "Understory", "color": "cyan" }}
+  ],
+  "relatedBubbles": [
+    {{ "id": "birds", "text": "Birds", "parentId": "canopy" }},
+    {{ "id": "fungi", "text": "Fungi", "parentId": "floor" }},
+    {{ "id": "shrubs", "text": "Shrubs", "parentId": "understory" }}
+  ]
+}}
+
+Requirements:
+- audioText should be 100-200 words, informative and structured
+- mainBubbles must have exactly 3 categories
+- color must be "purple", "cyan", or "orange"
+- relatedBubbles must have 6-9 items total (2-3 per category)
+- parentId in relatedBubbles must match an id in mainBubbles
+- The text must clearly associate the items with their categories
+
+Return ONLY valid JSON object, no other text."""

@@ -82,4 +82,7 @@ class VocabularyLookupRequest(BaseModel):
 class VocabularyLookupResponse(WordDefinition):
     """Response from vocabulary lookup (same as WordDefinition)."""
 
-    pass
+    source: Optional[str] = Field(
+        None, description="Data source: 'cache' or 'ai'"
+    )
+
