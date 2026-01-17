@@ -494,15 +494,16 @@ Each question offers a target word and asks to identify a synonym.
 Return a JSON array with exactly this structure:
 [
   {{
-    "word": "ubiquitous",
-    "meaning": "present, appearing, or found everywhere",
-    "correctSynonym": "omnipresent",
-    "options": ["omnipresent", "ephemeral", "meticulous", "benevolent"]
+    "word": "strategy",
+    "meaning": "a plan of action designed to achieve a long-term or overall aim",
+    "correctSynonym": "tactic",
+    "options": ["tactic", "illusion", "barrier", "concept"]
   }}
 ]
 
 Requirements:
-- Use intermediate to advanced vocabulary words
+- Use useful, commonly used vocabulary (CEFR B2-C1 level) suitable for professional or academic contexts
+- Avoid archaic, overly obscure, or purely literary words (like 'laconic', 'bellicose', 'obsequious')
 - correctSynonym must be a true synonym
 - options must include the correct synonym and 3 plausible distractors
 - Distractors should be real words of similar difficulty but different meaning
@@ -542,14 +543,15 @@ Each question provides a definition and asks for the word.
 Return a JSON array with exactly this structure:
 [
   {{
-    "word": "ephemeral",
-    "meaning": "lasting for a very short time",
+    "word": "resilient",
+    "meaning": "able to withstand or recover quickly from difficult conditions",
     "partOfSpeech": "adjective"
   }}
 ]
 
 Requirements:
-- Use intermediate to advanced vocabulary words (GRE/TOEFL level)
+- Use useful, commonly used vocabulary (CEFR B2-C1 level) suitable for professional discussion
+- Avoid extremely obscure or purely literary terms
 - meaning should be clear and precise
 - partOfSpeech must be correct (noun, verb, adjective, adverb)
 

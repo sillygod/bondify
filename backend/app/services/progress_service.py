@@ -191,6 +191,11 @@ class ProgressService:
         time_spent = stats.time_spent or 0
         lessons_done = stats.lessons_done or 0
 
+        # Get today's progress for delta display
+        today_progress = await self.get_today_progress(user_id)
+        today_words = today_progress.words_learned if today_progress else 0
+        today_xp = today_progress.xp_earned if today_progress else 0
+
         # Calculate accuracy rate (placeholder - would need actual tracking)
         accuracy_rate = 0.85 if lessons_done > 0 else 0.0
 
@@ -202,4 +207,6 @@ class ProgressService:
             "lessonsDone": lessons_done,
             "timeSpentHours": round(time_spent / 60, 1),
             "bestStreak": streak.longest_streak,
+            "todayWordsLearned": today_words,
+            "todayXp": today_xp,
         }

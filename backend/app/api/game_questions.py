@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Body
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -127,3 +127,40 @@ async def mark_question_reviewed(
         )
 
     return {"success": True, "question_id": question_id, "is_reviewed": reviewed}
+
+
+@router.delete("/{question_id}")
+async def delete_question(
+    question_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a generated question."""
+    service = GameQuestionService(db)
+    success = await service.delete_question(question_id)
+
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": "NOT_FOUND", "detail": "Question not found"},
+        )
+
+    return {"success": True, "question_id": question_id}
+
+
+@router.patch("/{question_id}")
+async def update_question(
+    question_id: int,
+    updates: dict = Body(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a generated question."""
+    service = GameQuestionService(db)
+    updated_question = await service.update_question(question_id, updates)
+
+    if not updated_question:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": "NOT_FOUND", "detail": "Question not found"},
+        )
+
+    return updated_question

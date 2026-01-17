@@ -1,11 +1,9 @@
-import { useState, useEffect } from "react";
 import { Menu, Zap, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { NotificationDropdown } from "./NotificationDropdown";
+import { useStats } from "@/contexts/StatsContext";
 import { tokenManager } from "@/lib/api";
-import { getCurrentUser, UserProfile } from "@/lib/api/user";
-import { getStats, LearningStats } from "@/lib/api/progress";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -14,26 +12,7 @@ interface HeaderProps {
 
 export const Header = ({ onMenuClick, onStreakClick }: HeaderProps) => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [stats, setStats] = useState<LearningStats | null>(null);
-
-  useEffect(() => {
-    const loadUserData = async () => {
-      if (tokenManager.isAuthenticated()) {
-        try {
-          const [userData, statsData] = await Promise.all([
-            getCurrentUser(),
-            getStats(),
-          ]);
-          setUser(userData);
-          setStats(statsData);
-        } catch (error) {
-          console.error("Error loading user data:", error);
-        }
-      }
-    };
-    loadUserData();
-  }, []);
+  const { user, stats } = useStats();
 
   const displayName = user?.displayName || user?.email?.charAt(0).toUpperCase() || "?";
   const avatarLetter = displayName.charAt(0).toUpperCase();

@@ -26,29 +26,16 @@ import {
 import { StatCard } from "@/components/dashboard/StatCard";
 import { GameCard } from "@/components/dashboard/GameCard";
 import { Button } from "@/components/ui/button";
-import { getStats, LearningStats } from "@/lib/api/progress";
+import { useStats } from "@/contexts/StatsContext";
 import { tokenManager } from "@/lib/api";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState<LearningStats | null>(null);
+  const { stats, isLoading } = useStats();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const authenticated = tokenManager.isAuthenticated();
-    setIsAuthenticated(authenticated);
-    
-    const loadStats = async () => {
-      if (authenticated) {
-        try {
-          const data = await getStats();
-          setStats(data);
-        } catch (error) {
-          console.error("Error loading stats:", error);
-        }
-      }
-    };
-    loadStats();
+    setIsAuthenticated(tokenManager.isAuthenticated());
   }, []);
 
   const handleWordClick = (word: string) => {
@@ -72,7 +59,7 @@ const Dashboard = () => {
               icon={BookOpen}
               label="Words Learned"
               value={stats.wordsLearned}
-              change="+12"
+              change={stats.todayWordsLearned > 0 ? `+${stats.todayWordsLearned}` : undefined}
               color="purple"
               delay={0.1}
             />
@@ -80,7 +67,6 @@ const Dashboard = () => {
               icon={Target}
               label="Accuracy Rate"
               value={`${Math.round(stats.accuracyRate * 100)}%`}
-              change="+3%"
               color="cyan"
               delay={0.2}
             />
@@ -95,7 +81,7 @@ const Dashboard = () => {
               icon={Trophy}
               label="Total XP"
               value={stats.totalXp.toLocaleString()}
-              change="+180"
+              change={stats.todayXp > 0 ? `+${stats.todayXp}` : undefined}
               color="pink"
               delay={0.4}
             />

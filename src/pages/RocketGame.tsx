@@ -5,8 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
-import { fetchRocketQuestions, RocketQuestion } from "@/lib/api/gameQuestions";
-import { recordActivity } from "@/lib/api/progress";
+import { useRocketQuestions, RocketQuestion } from "@/hooks/useGameQuestions";
+import { useGameProgress } from "@/hooks/useGameProgress";
 
 // Fallback mock data for when API is unavailable
 import { vocabularyData, getRandomSynonyms } from "@/data/vocabulary";
@@ -381,42 +381,27 @@ const RocketGame = () => {
   // API state
   const [apiError, setApiError] = useState<string | null>(null);
   const [usingMockData, setUsingMockData] = useState(false);
-  const [progressRecorded, setProgressRecorded] = useState(false);
 
   // Refs
   const animationFrameRef = useRef<number>();
   const lastTimeRef = useRef<number>(0);
-  const gameStartTimeRef = useRef<number>(0);
+
+  // Use shared progress tracking hook
+  const { resetProgress } = useGameProgress({
+    gameState,
+    score,
+    wordsLearned: currentQuestionIndex,
+    xpMultiplier: 0.1, // score / 10 = XP
+  });
+
+  // TanStack Query hook for fetching questions
+  const { refetch: fetchQuestions, isFetching: isLoadingQuestions } = useRocketQuestions(TOTAL_QUESTIONS);
 
   // Hide header/sidebar when playing
   useEffect(() => {
     setHideHeader(gameState === "playing");
-    if (gameState === "playing") {
-      gameStartTimeRef.current = Date.now();
-    }
     return () => setHideHeader(false);
   }, [gameState, setHideHeader]);
-
-  // Record progress when game ends
-  useEffect(() => {
-    if (gameState === "ended" && !progressRecorded && score > 0) {
-      const recordProgress = async () => {
-        try {
-          const timeSpent = Math.round((Date.now() - gameStartTimeRef.current) / 60000); // minutes
-          await recordActivity({
-            xp: Math.round(score / 10), // Convert game score to XP
-            wordsLearned: currentQuestionIndex,
-            timeSpentMinutes: Math.max(1, timeSpent), // At least 1 minute
-          });
-          setProgressRecorded(true);
-          console.log("Progress recorded successfully");
-        } catch (error) {
-          console.error("Failed to record progress:", error);
-        }
-      };
-      recordProgress();
-    }
-  }, [gameState, progressRecorded, score, currentQuestionIndex]);
 
   // Load questions from API
   const loadQuestions = useCallback(async () => {
@@ -425,9 +410,10 @@ const RocketGame = () => {
     setUsingMockData(false);
 
     try {
-      const apiQuestions = await fetchRocketQuestions(TOTAL_QUESTIONS);
+      const result = await fetchQuestions();
+      const apiQuestions = result.data;
 
-      if (apiQuestions.length > 0) {
+      if (apiQuestions && apiQuestions.length > 0) {
         setQuestions(apiQuestions);
         return true;
       } else {
@@ -454,7 +440,7 @@ const RocketGame = () => {
       setQuestions(mockQuestions);
       return true;
     }
-  }, []);
+  }, [fetchQuestions]);
 
   const initGame = useCallback(async () => {
     const loaded = await loadQuestions();
@@ -467,10 +453,10 @@ const RocketGame = () => {
       setIsCorrect(null);
       setRocketY(0);
       setIsBoosting(false);
-      setProgressRecorded(false); // Reset for new game
+      resetProgress(); // Reset progress tracking for new game
       setGameState("playing");
     }
-  }, [loadQuestions]);
+  }, [loadQuestions, resetProgress]);
 
   // Continuous descent animation
   useEffect(() => {

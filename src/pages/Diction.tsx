@@ -2,10 +2,11 @@ import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BookCheck, Trophy, RotateCcw, Check, X, Lightbulb, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DictionQuestion, getRandomDictionQuestions } from "@/data/dictionData";
+import { useDictionQuestions, DictionQuestion } from "@/hooks/useGameQuestions";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
 import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
 type GameState = "ready" | "playing" | "showingResult" | "ended";
 
@@ -19,8 +20,11 @@ const Diction = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<boolean | null>(null);
 
   const currentQuestion = questions[currentIndex];
-  const totalQuestions = 10;
+  const totalQuestions = questions.length;
   const { setHideHeader } = useLayoutControl();
+
+  // TanStack Query hook
+  const { refetch: fetchQuestions, isFetching: loading } = useDictionQuestions(10);
 
   useEffect(() => {
     if (gameState !== "ready" && gameState !== "ended") {
@@ -37,16 +41,23 @@ const Diction = () => {
     wordsLearned: currentIndex,
   });
 
-  const startGame = useCallback(() => {
-    const newQuestions = getRandomDictionQuestions(totalQuestions);
-    setQuestions(newQuestions);
-    setCurrentIndex(0);
-    setScore(0);
-    setStreak(0);
-    setSelectedAnswer(null);
-    resetProgress();
-    setGameState("playing");
-  }, [resetProgress]);
+  const startGame = useCallback(async () => {
+    try {
+      const result = await fetchQuestions();
+      const newQuestions = result.data;
+      if (newQuestions && newQuestions.length > 0) {
+        setQuestions(newQuestions);
+        setCurrentIndex(0);
+        setScore(0);
+        setStreak(0);
+        setSelectedAnswer(null);
+        resetProgress();
+        setGameState("playing");
+      }
+    } catch (error) {
+      console.error("Failed to start game:", error);
+    }
+  }, [resetProgress, fetchQuestions]);
 
   const handleAnswer = (answer: boolean) => {
     if (gameState !== "playing") return;
@@ -176,10 +187,18 @@ const Diction = () => {
 
               <Button
                 onClick={startGame}
+                disabled={loading}
                 size="lg"
                 className="bg-gradient-to-r from-neon-cyan to-primary hover:opacity-90"
               >
-                Start Game
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  "Start Game"
+                )}
               </Button>
             </motion.div>
           )}
@@ -376,11 +395,21 @@ const Diction = () => {
 
               <Button
                 onClick={startGame}
+                disabled={loading}
                 size="lg"
                 className="bg-gradient-to-r from-neon-cyan to-primary hover:opacity-90"
               >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Play Again
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Play Again
+                  </>
+                )}
               </Button>
             </motion.div>
           )}

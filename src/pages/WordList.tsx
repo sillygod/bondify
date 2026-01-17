@@ -16,12 +16,8 @@ import {
   Check,
 } from "lucide-react";
 import { lookupWord, WordDefinition } from "@/lib/api/vocabulary";
-import {
-  getUserWordlist,
-  addToWordlist,
-  removeFromWordlist,
-  WordlistEntry,
-} from "@/lib/api/wordlist";
+import { WordlistEntry } from "@/lib/api/wordlist";
+import { useWordlist, useAddWord, useRemoveWord } from "@/hooks/useWordlist";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -47,29 +43,14 @@ const WordList = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isApiSearch, setIsApiSearch] = useState(false);
-
-  // User's wordlist from backend
-  const [wordlist, setWordlist] = useState<WordlistEntry[]>([]);
-  const [isLoadingList, setIsLoadingList] = useState(true);
-  const [isAddingWord, setIsAddingWord] = useState(false);
   const [addSuccess, setAddSuccess] = useState<string | null>(null);
 
-  // Load user's wordlist on mount
-  useEffect(() => {
-    loadWordlist();
-  }, []);
+  // TanStack Query hooks
+  const { data: wordlistData, isLoading: isLoadingList } = useWordlist();
+  const addWordMutation = useAddWord();
+  const removeWordMutation = useRemoveWord();
 
-  const loadWordlist = async () => {
-    setIsLoadingList(true);
-    try {
-      const response = await getUserWordlist();
-      setWordlist(response.words);
-    } catch (error) {
-      console.error("Error loading wordlist:", error);
-    } finally {
-      setIsLoadingList(false);
-    }
-  };
+  const wordlist = wordlistData?.words ?? [];
 
   // Auto-select word from URL query parameter
   useEffect(() => {
@@ -152,27 +133,22 @@ const WordList = () => {
   const handleAddToWordlist = async () => {
     if (!wordData) return;
 
-    setIsAddingWord(true);
     setAddSuccess(null);
 
     try {
-      const newEntry = await addToWordlist(wordData.word);
-      setWordlist(prev => [newEntry, ...prev]);
+      await addWordMutation.mutateAsync({ word: wordData.word });
       setAddSuccess(wordData.word);
       setTimeout(() => setAddSuccess(null), 3000);
     } catch (error: unknown) {
       console.error("Error adding word:", error);
       const errorDetail = (error as { detail?: { detail?: string } })?.detail?.detail;
       setSearchError(errorDetail || "Failed to add word to list");
-    } finally {
-      setIsAddingWord(false);
     }
   };
 
   const handleRemoveFromWordlist = async (word: string) => {
     try {
-      await removeFromWordlist(word);
-      setWordlist(prev => prev.filter(w => w.word !== word));
+      await removeWordMutation.mutateAsync(word);
       if (selectedWord?.word === word) {
         setSelectedWord(null);
         setWordData(null);
@@ -370,10 +346,10 @@ const WordList = () => {
                   >
                     <Button
                       onClick={handleAddToWordlist}
-                      disabled={isAddingWord}
+                      disabled={addWordMutation.isPending}
                       className="w-full rounded-xl bg-gradient-to-r from-primary to-neon-cyan"
                     >
-                      {isAddingWord ? (
+                      {addWordMutation.isPending ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       ) : (
                         <Plus className="w-4 h-4 mr-2" />

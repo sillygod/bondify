@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { StatsProvider } from "@/contexts/StatsContext";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import RocketGame from "./pages/RocketGame";
@@ -40,43 +41,45 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/auth" element={<Auth />} />
+        <StatsProvider>
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
 
-          {/* Admin Routes */}
-          <Route element={<AdminLayout />}>
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/questions" element={<QuestionManager />} />
-            <Route path="/admin/generate" element={<GenerateQuestions />} />
-          </Route>
+            {/* Admin Routes */}
+            <Route element={<AdminLayout />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/questions" element={<QuestionManager />} />
+              <Route path="/admin/generate" element={<GenerateQuestions />} />
+            </Route>
 
-          {/* Main App Routes */}
-          <Route element={<MainLayout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/rocket-game" element={<RocketGame />} />
-            <Route path="/recall-game" element={<RecallGame />} />
-            <Route path="/word-parts" element={<WordParts />} />
-            <Route path="/conversation" element={<Conversation />} />
-            <Route path="/word-list" element={<WordList />} />
-            <Route path="/clarity" element={<Clarity />} />
-            <Route path="/diction" element={<Diction />} />
-            <Route path="/pronunciation" element={<Pronunciation />} />
-            <Route path="/speed-reading" element={<SpeedReading />} />
-            <Route path="/brevity" element={<Brevity />} />
-            <Route path="/transitions" element={<Transitions />} />
-            <Route path="/rephrase" element={<Rephrase />} />
-            <Route path="/rephrase-analyzer" element={<RephraseAnalyzer />} />
-            <Route path="/vocabulary-lookup" element={<WordList />} />
-            <Route path="/punctuation" element={<Punctuation />} />
-            <Route path="/context-game" element={<ContextGame />} />
-            <Route path="/listening-game" element={<ListeningGame />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/attention" element={<Attention />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/profile" element={<Profile />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            {/* Main App Routes */}
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/rocket-game" element={<RocketGame />} />
+              <Route path="/recall-game" element={<RecallGame />} />
+              <Route path="/word-parts" element={<WordParts />} />
+              <Route path="/conversation" element={<Conversation />} />
+              <Route path="/word-list" element={<WordList />} />
+              <Route path="/clarity" element={<Clarity />} />
+              <Route path="/diction" element={<Diction />} />
+              <Route path="/pronunciation" element={<Pronunciation />} />
+              <Route path="/speed-reading" element={<SpeedReading />} />
+              <Route path="/brevity" element={<Brevity />} />
+              <Route path="/transitions" element={<Transitions />} />
+              <Route path="/rephrase" element={<Rephrase />} />
+              <Route path="/rephrase-analyzer" element={<RephraseAnalyzer />} />
+              <Route path="/vocabulary-lookup" element={<WordList />} />
+              <Route path="/punctuation" element={<Punctuation />} />
+              <Route path="/context-game" element={<ContextGame />} />
+              <Route path="/listening-game" element={<ListeningGame />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/attention" element={<Attention />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/profile" element={<Profile />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </StatsProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

@@ -1,28 +1,35 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Brain, ArrowLeft, Trophy, Lightbulb, Check, X } from "lucide-react";
+import { Brain, ArrowLeft, Trophy, Lightbulb, Check, X, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { vocabularyData, Word } from "@/data/vocabulary";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
+import { useRecallQuestions, RecallQuestion } from "@/hooks/useGameQuestions";
+
+// Fallback mock data for when API is unavailable
+import { vocabularyData } from "@/data/vocabulary";
 
 const TOTAL_QUESTIONS = 10;
 
 const RecallGame = () => {
   const navigate = useNavigate();
   const { setHideHeader } = useLayoutControl();
-  const [gameState, setGameState] = useState<"ready" | "playing" | "ended">("ready");
+  const [gameState, setGameState] = useState<"ready" | "loading" | "playing" | "ended">("ready");
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [questions, setQuestions] = useState<Word[]>([]);
+  const [questions, setQuestions] = useState<RecallQuestion[]>([]);
   const [userInput, setUserInput] = useState("");
   const [showHint, setShowHint] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [score, setScore] = useState(0);
   const [correctAnswers, setCorrectAnswers] = useState(0);
+  const [usingMockData, setUsingMockData] = useState(false);
+
+  // TanStack Query hook
+  const { refetch: fetchQuestions, isFetching } = useRecallQuestions(TOTAL_QUESTIONS);
 
   // Hide header/sidebar when playing
   useEffect(() => {
@@ -36,10 +43,35 @@ const RecallGame = () => {
     wordsLearned: correctAnswers,
   });
 
-  const initGame = useCallback(() => {
-    const shuffled = [...vocabularyData].sort(() => Math.random() - 0.5);
-    const selected = shuffled.slice(0, TOTAL_QUESTIONS);
-    setQuestions(selected);
+  const initGame = useCallback(async () => {
+    setGameState("loading");
+    setUsingMockData(false);
+
+    try {
+      const result = await fetchQuestions();
+      const apiQuestions = result.data;
+
+      if (apiQuestions && apiQuestions.length > 0) {
+        setQuestions(apiQuestions);
+      } else {
+        throw new Error("No questions available");
+      }
+    } catch (error) {
+      console.warn("API unavailable, using mock data:", error);
+      setUsingMockData(true);
+
+      // Fallback to mock data
+      const shuffled = [...vocabularyData].sort(() => Math.random() - 0.5);
+      const selected = shuffled.slice(0, TOTAL_QUESTIONS);
+      const mockQuestions: RecallQuestion[] = selected.map((word, index) => ({
+        id: index,
+        word: word.word,
+        meaning: word.meaning,
+        partOfSpeech: "noun", // Mock doesn't have this
+      }));
+      setQuestions(mockQuestions);
+    }
+
     setCurrentQuestionIndex(0);
     setUserInput("");
     setShowHint(false);
@@ -48,7 +80,7 @@ const RecallGame = () => {
     setCorrectAnswers(0);
     resetProgress();
     setGameState("playing");
-  }, [resetProgress]);
+  }, [resetProgress, fetchQuestions]);
 
   const currentWord = questions[currentQuestionIndex];
 
@@ -116,7 +148,7 @@ const RecallGame = () => {
       </div>
 
       <AnimatePresence mode="wait">
-        {gameState === "ready" && (
+        {(gameState === "ready" || gameState === "loading") && (
           <motion.div
             key="ready"
             initial={{ opacity: 0, scale: 0.9 }}
@@ -137,9 +169,17 @@ const RecallGame = () => {
             </p>
             <Button
               onClick={initGame}
+              disabled={gameState === "loading"}
               className="bg-gradient-to-r from-neon-cyan to-primary hover:opacity-90 text-primary-foreground font-display font-semibold px-8 py-6 rounded-xl text-lg"
             >
-              Start Challenge
+              {gameState === "loading" ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                "Start Challenge"
+              )}
             </Button>
           </motion.div>
         )}

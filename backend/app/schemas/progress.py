@@ -33,6 +33,9 @@ class LearningStats(BaseModel):
     lessonsDone: int = Field(ge=0)
     timeSpentHours: float = Field(ge=0.0)
     bestStreak: int = Field(ge=0)
+    # Today's changes (for displaying delta values on dashboard)
+    todayWordsLearned: int = Field(default=0, ge=0)
+    todayXp: int = Field(default=0, ge=0)
 
 
 class ActivityRequest(BaseModel):

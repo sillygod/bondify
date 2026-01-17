@@ -47,7 +47,23 @@ class GameQuestionAgent:
         """Initialize game question agent."""
         self.llm = llm or LLMFactory.create()
 
-    def _get_prompt_for_type(self, game_type: str, count: int) -> str:
+    def _parse_json_response(self, content: str) -> Union[List[dict], dict]:
+        """Parse JSON response from LLM (can be array or object)."""
+        content = content.strip()
+
+        # Handle markdown code blocks
+        if content.startswith("```"):
+            lines = content.split("\n")
+            lines = lines[1:]
+            for i, line in enumerate(lines):
+                if line.strip() == "```":
+                    lines = lines[:i]
+                    break
+            content = "\n".join(lines).strip()
+
+        return json.loads(content)
+
+    def _get_prompt_for_type(self, game_type: str, count: int, exclude_words: set = None) -> str:
         """Get the appropriate prompt for the game type."""
         prompts = {
             "clarity": CLARITY_QUESTION_PROMPT,
@@ -67,26 +83,20 @@ class GameQuestionAgent:
         prompt_template = prompts.get(game_type)
         if not prompt_template:
             raise ValueError(f"Unknown game type: {game_type}")
-        return prompt_template.format(count=count)
 
-    def _parse_json_response(self, content: str) -> Union[List[dict], dict]:
-        """Parse JSON response from LLM (can be array or object)."""
-        content = content.strip()
+        base_prompt = prompt_template.format(count=count)
 
-        # Handle markdown code blocks
-        if content.startswith("```"):
-            lines = content.split("\n")
-            lines = lines[1:]
-            for i, line in enumerate(lines):
-                if line.strip() == "```":
-                    lines = lines[:i]
-                    break
-            content = "\n".join(lines).strip()
+        # Add exclusion instruction if there are words to exclude
+        if exclude_words and len(exclude_words) > 0:
+            # Limit the exclusion list to avoid making the prompt too long
+            words_to_exclude = list(exclude_words)[:50]
+            exclusion_instruction = f"\n\nIMPORTANT: Do NOT use any of these words that already exist in the database: {', '.join(words_to_exclude)}"
+            base_prompt += exclusion_instruction
 
-        return json.loads(content)
+        return base_prompt
 
     async def generate_questions(
-        self, game_type: str, count: int = 5
+        self, game_type: str, count: int = 5, exclude_words: set = None
     ) -> List[dict]:
         """
         Generate game questions using AI.
@@ -94,6 +104,7 @@ class GameQuestionAgent:
         Args:
             game_type: Type of game
             count: Number of questions to generate
+            exclude_words: Set of words to exclude (already exist in database)
 
         Returns:
             List of question dictionaries
@@ -104,7 +115,7 @@ class GameQuestionAgent:
                 f"Supported types: {self.SUPPORTED_GAME_TYPES}"
             )
 
-        prompt = self._get_prompt_for_type(game_type, count)
+        prompt = self._get_prompt_for_type(game_type, count, exclude_words)
 
         try:
             response = await self.llm.ainvoke([HumanMessage(content=prompt)])

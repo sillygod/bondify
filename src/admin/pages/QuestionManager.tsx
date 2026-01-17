@@ -6,24 +6,27 @@ import {
     Filter,
     RefreshCw,
     Eye,
-    X
+    X,
+    Trash2,
+    Pencil,
+    LayoutGrid
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Question {
-    id: number;
-    difficulty: string;
-    is_reviewed: boolean;
-    [key: string]: any;
-}
+import {
+    getQuestions,
+    updateReviewStatus,
+    deleteQuestion,
+    updateQuestion,
+    Question
+} from "../api";
+import { EditQuestionDialog } from "../EditQuestionDialog";
+import { toast } from "sonner";
 
 const GAME_TYPES = [
     "clarity", "transitions", "brevity", "context", "diction",
     "punctuation", "listening", "speed_reading", "word_parts",
     "rocket", "rephrase", "recall", "attention"
 ];
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
 // Detail Modal Component
 const QuestionDetailModal = ({
@@ -36,7 +39,7 @@ const QuestionDetailModal = ({
     onReview: (id: number, reviewed: boolean) => void;
 }) => {
     // Extract display fields (exclude metadata)
-    const { id, difficulty, is_reviewed, ...questionData } = question;
+    const { id, difficulty, is_reviewed, game_type, ...questionData } = question;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -132,19 +135,16 @@ export const QuestionManager = () => {
     const [loading, setLoading] = useState(false);
     const [filter, setFilter] = useState<"all" | "reviewed" | "pending">("all");
     const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
+    const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
     const fetchQuestions = async () => {
         setLoading(true);
         try {
-            const res = await fetch(
-                `${API_BASE}/api/game-questions/${selectedType}?limit=50`
-            );
-            if (res.ok) {
-                const data = await res.json();
-                setQuestions(data.questions || []);
-            }
+            const data = await getQuestions(selectedType);
+            setQuestions(data.questions || []);
         } catch (error) {
             console.error("Failed to fetch questions:", error);
+            toast.error("Failed to fetch questions");
         } finally {
             setLoading(false);
         }
@@ -156,19 +156,44 @@ export const QuestionManager = () => {
 
     const handleReview = async (questionId: number, reviewed: boolean) => {
         try {
-            const res = await fetch(
-                `${API_BASE}/api/game-questions/${questionId}/review?reviewed=${reviewed}`,
-                { method: "PATCH" }
+            await updateReviewStatus(questionId, reviewed);
+            setQuestions((prev) =>
+                prev.map((q) =>
+                    q.id === questionId ? { ...q, is_reviewed: reviewed } : q
+                )
             );
-            if (res.ok) {
-                setQuestions((prev) =>
-                    prev.map((q) =>
-                        q.id === questionId ? { ...q, is_reviewed: reviewed } : q
-                    )
-                );
-            }
+            toast.success(reviewed ? "Marked as reviewed" : "Unmarked as reviewed");
         } catch (error) {
             console.error("Failed to update review status:", error);
+            toast.error("Failed to update status");
+        }
+    };
+
+    const handleDelete = async (questionId: number) => {
+        if (!confirm("Are you sure you want to delete this question? This action cannot be undone.")) {
+            return;
+        }
+
+        try {
+            await deleteQuestion(questionId);
+            setQuestions((prev) => prev.filter((q) => q.id !== questionId));
+            toast.success("Question deleted successfully");
+        } catch (error) {
+            console.error("Failed to delete question:", error);
+            toast.error("Failed to delete question");
+        }
+    };
+
+    const handleUpdate = async (id: number, updates: Partial<Question>) => {
+        try {
+            const updated = await updateQuestion(id, updates);
+            setQuestions((prev) =>
+                prev.map((q) => q.id === id ? { ...q, ...updated } : q)
+            );
+            toast.success("Question updated successfully");
+        } catch (error) {
+            console.error("Failed to update question:", error);
+            throw error; // Let the dialog handle the error display
         }
     };
 
@@ -186,6 +211,15 @@ export const QuestionManager = () => {
                     question={selectedQuestion}
                     onClose={() => setSelectedQuestion(null)}
                     onReview={handleReview}
+                />
+            )}
+
+            {/* Edit Modal */}
+            {editingQuestion && (
+                <EditQuestionDialog
+                    question={editingQuestion}
+                    onClose={() => setEditingQuestion(null)}
+                    onSave={handleUpdate}
                 />
             )}
 
@@ -280,65 +314,87 @@ export const QuestionManager = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#1a2744]">
-                            {filteredQuestions.map((question) => (
-                                <tr
-                                    key={question.id}
-                                    className="hover:bg-[#1a2744]/50 transition-colors cursor-pointer"
-                                    onClick={() => setSelectedQuestion(question)}
-                                >
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                                        #{question.id}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-300 max-w-md truncate">
-                                        {JSON.stringify(question).slice(0, 80)}...
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="px-2 py-1 text-xs font-medium rounded-md bg-[#1a2744] text-gray-300 capitalize">
-                                            {question.difficulty}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        {question.is_reviewed ? (
-                                            <span className="flex items-center gap-1 text-emerald-400 text-sm">
-                                                <CheckCircle className="w-4 h-4" />
-                                                Reviewed
+                            {filteredQuestions.map((question) => {
+                                // Prepare preview text safely
+                                const { id, difficulty, is_reviewed, ...rest } = question;
+                                const previewText = JSON.stringify(rest).slice(0, 60) + "...";
+
+                                return (
+                                    <tr
+                                        key={question.id}
+                                        className="hover:bg-[#1a2744]/50 transition-colors cursor-pointer"
+                                        onClick={() => setSelectedQuestion(question)}
+                                    >
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                                            #{question.id}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-300">
+                                            <div className="flex items-center gap-2">
+                                                <code className="px-2 py-1 rounded bg-[#0a0e1a] text-cyan-400/80 text-xs font-mono">
+                                                    {previewText}
+                                                </code>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={cn(
+                                                "px-2 py-1 text-xs font-medium rounded-md capitalize",
+                                                question.difficulty === 'hard' ? "bg-red-500/10 text-red-400" :
+                                                    question.difficulty === 'easy' ? "bg-green-500/10 text-green-400" :
+                                                        "bg-blue-500/10 text-blue-400"
+                                            )}>
+                                                {question.difficulty}
                                             </span>
-                                        ) : (
-                                            <span className="flex items-center gap-1 text-amber-400 text-sm">
-                                                <XCircle className="w-4 h-4" />
-                                                Pending
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setSelectedQuestion(question);
-                                                }}
-                                                className="px-3 py-1 rounded-md text-xs font-medium bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 transition-colors"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleReview(question.id, !question.is_reviewed);
-                                                }}
-                                                className={cn(
-                                                    "px-3 py-1 rounded-md text-xs font-medium transition-colors",
-                                                    question.is_reviewed
-                                                        ? "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
-                                                        : "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
-                                                )}
-                                            >
-                                                {question.is_reviewed ? "Unmark" : "Approve"}
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {question.is_reviewed ? (
+                                                <span className="flex items-center gap-1 text-emerald-400 text-sm">
+                                                    <CheckCircle className="w-4 h-4" />
+                                                    Reviewed
+                                                </span>
+                                            ) : (
+                                                <span className="flex items-center gap-1 text-amber-400 text-sm">
+                                                    <XCircle className="w-4 h-4" />
+                                                    Pending
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                                            <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingQuestion(question);
+                                                    }}
+                                                    className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-[#2a3a5a] transition-colors"
+                                                    title="Edit"
+                                                >
+                                                    <Pencil className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(question.id)}
+                                                    className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+
+                                                <div className="w-px h-4 bg-[#2a3a5a] mx-1" />
+
+                                                <button
+                                                    onClick={() => handleReview(question.id, !question.is_reviewed)}
+                                                    className={cn(
+                                                        "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border",
+                                                        question.is_reviewed
+                                                            ? "border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                                                            : "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                                                    )}
+                                                >
+                                                    {question.is_reviewed ? "Unmark" : "Approve"}
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )
+                            })}
                         </tbody>
                     </table>
                 )}

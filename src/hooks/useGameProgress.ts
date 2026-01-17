@@ -41,9 +41,9 @@ export function useGameProgress({
     const [newAchievements, setNewAchievements] = useState<string[]>([]);
     const gameStartTimeRef = useRef<number>(0);
 
-    // Track when game starts
+    // Track when game starts (any state other than ready or ended means game is active)
     useEffect(() => {
-        if (gameState === "playing") {
+        if (gameState !== "ready" && gameState !== "ended" && gameStartTimeRef.current === 0) {
             gameStartTimeRef.current = Date.now();
         }
     }, [gameState]);

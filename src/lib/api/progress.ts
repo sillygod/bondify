@@ -27,6 +27,8 @@ export interface LearningStats {
   lessonsDone: number;
   timeSpentHours: number;
   bestStreak: number;
+  todayWordsLearned: number;
+  todayXp: number;
 }
 
 export interface ActivityRequest {

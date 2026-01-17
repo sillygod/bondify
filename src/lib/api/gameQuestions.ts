@@ -72,3 +72,66 @@ export async function hasRocketQuestions(): Promise<boolean> {
         return false;
     }
 }
+
+
+export interface DictionQuestion {
+    id: number;
+    sentence: string;
+    highlightedPart: {
+        startIndex: number;
+        text: string;
+    };
+    isCorrect: boolean;
+    correctVersion?: string;
+    category: "vocabulary" | "grammar" | "idiom" | "preposition" | "word-choice";
+    explanation: string;
+}
+
+export interface DictionQuestionsResponse {
+    game_type: string;
+    count: number;
+    questions: DictionQuestion[];
+}
+
+/**
+ * Fetch diction game questions from the backend.
+ */
+export async function fetchDictionQuestions(limit = 10): Promise<DictionQuestion[]> {
+    try {
+        // Try to get reviewed questions first
+        const response = await api.get<DictionQuestionsResponse>(
+            `/api/game-questions/diction?limit=${limit}&only_reviewed=true&random_order=true`,
+            false
+        );
+
+        if (response.questions.length > 0) {
+            return response.questions;
+        }
+
+        // Fallback to unreviewed
+        const fallbackResponse = await api.get<DictionQuestionsResponse>(
+            `/api/game-questions/diction?limit=${limit}&only_reviewed=false&random_order=true`,
+            false
+        );
+
+        return fallbackResponse.questions;
+    } catch (error) {
+        console.error('Failed to fetch diction questions:', error);
+        throw error;
+    }
+}
+
+/**
+ * Check if backend has diction questions.
+ */
+export async function hasDictionQuestions(): Promise<boolean> {
+    try {
+        const response = await api.get<DictionQuestionsResponse>(
+            '/api/game-questions/diction?limit=1',
+            false
+        );
+        return response.count > 0;
+    } catch {
+        return false;
+    }
+}

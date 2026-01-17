@@ -6,45 +6,36 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { getCurrentUser, UserProfile } from "@/lib/api/user";
-import { getStats, getAchievements, LearningStats, Achievement } from "@/lib/api/progress";
+import { getAchievements, LearningStats, Achievement } from "@/lib/api/progress";
+import { useStats } from "@/contexts/StatsContext";
 import { logout } from "@/lib/api/auth";
 import { tokenManager } from "@/lib/api";
 
 const Profile = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [stats, setStats] = useState<LearningStats | null>(null);
+  const { user, stats, isLoading: isStatsLoading } = useStats();
   const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAchievementsLoading, setIsAchievementsLoading] = useState(true);
 
   const isAuthenticated = tokenManager.isAuthenticated();
 
   useEffect(() => {
-    const loadData = async () => {
-      if (!isAuthenticated) {
-        // Not authenticated - will show login prompt
-        setIsLoading(false);
-        return;
-      }
-
+    const loadAchievements = async () => {
+      if (!isAuthenticated) return;
       try {
-        const [userData, statsData, achievementsData] = await Promise.all([
-          getCurrentUser(),
-          getStats(),
-          getAchievements(),
-        ]);
-        setUser(userData);
-        setStats(statsData);
-        setAchievements(achievementsData);
+        const data = await getAchievements();
+        setAchievements(data);
       } catch (error) {
-        console.error("Error loading profile data:", error);
+        console.error("Error loading achievements:", error);
       } finally {
-        setIsLoading(false);
+        setIsAchievementsLoading(false);
       }
     };
 
-    loadData();
+    loadAchievements();
   }, [isAuthenticated]);
+
+  const isLoading = isStatsLoading || isAchievementsLoading;
 
   const handleLogout = () => {
     logout();
@@ -53,7 +44,7 @@ const Profile = () => {
 
   const displayName = user?.displayName || "User";
   const email = user?.email || "";
-  const createdAt = user?.createdAt 
+  const createdAt = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     : "";
 
@@ -123,7 +114,7 @@ const Profile = () => {
                 </div>
                 <h2 className="text-xl font-display font-semibold">{displayName}</h2>
                 <p className="text-muted-foreground text-sm">{email}</p>
-                
+
                 <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
                   <Calendar className="w-4 h-4" />
                   <span>Joined {createdAt}</span>
@@ -141,16 +132,16 @@ const Profile = () => {
                 </div>
 
                 <div className="w-full mt-6 space-y-2">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full justify-start gap-2"
                     onClick={() => navigate("/settings")}
                   >
                     <Settings className="w-4 h-4" />
                     Settings
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full justify-start gap-2 text-destructive hover:text-destructive"
                     onClick={handleLogout}
                   >
@@ -208,18 +199,16 @@ const Profile = () => {
                   {achievements.map((achievement) => (
                     <div
                       key={achievement.name}
-                      className={`p-4 rounded-xl border transition-all ${
-                        achievement.unlocked
-                          ? "bg-secondary/50 border-neon-cyan/30"
-                          : "bg-secondary/20 border-border/30 opacity-50"
-                      }`}
+                      className={`p-4 rounded-xl border transition-all ${achievement.unlocked
+                        ? "bg-secondary/50 border-neon-cyan/30"
+                        : "bg-secondary/20 border-border/30 opacity-50"
+                        }`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`p-2 rounded-lg ${
-                          achievement.unlocked 
-                            ? "bg-neon-cyan/20 text-neon-cyan" 
-                            : "bg-muted text-muted-foreground"
-                        }`}>
+                        <div className={`p-2 rounded-lg ${achievement.unlocked
+                          ? "bg-neon-cyan/20 text-neon-cyan"
+                          : "bg-muted text-muted-foreground"
+                          }`}>
                           <Trophy className="w-4 h-4" />
                         </div>
                         <div>

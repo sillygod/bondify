@@ -1,6 +1,7 @@
 """Game Question Service for managing AI-generated questions."""
 
 import json
+import random
 from typing import List, Optional
 
 from sqlalchemy import Integer, func, select
@@ -16,11 +17,34 @@ class GameQuestionService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    async def get_existing_words(self, game_type: str) -> set:
+        """Get all existing words for a game type to avoid duplicates."""
+        stmt = select(GameQuestion).where(GameQuestion.game_type == game_type)
+        result = await self.db.execute(stmt)
+        questions = result.scalars().all()
+
+        existing_words = set()
+        for q in questions:
+            try:
+                data = json.loads(q.question_json)
+                # Different game types may use different key names for the main word/sentence
+                if "word" in data:
+                    existing_words.add(data["word"].lower())
+                elif "sentence" in data:
+                    existing_words.add(data["sentence"].lower()[:100])  # Use first 100 chars
+                elif "originalSentence" in data:
+                    existing_words.add(data["originalSentence"].lower()[:100])
+            except (json.JSONDecodeError, KeyError):
+                pass
+
+        return existing_words
+
     async def generate_questions(
         self, game_type: str, count: int = 5, difficulty: str = "medium"
     ) -> List[dict]:
         """
         Generate new questions using AI and save to database.
+        Skips duplicate questions based on the main word/sentence.
 
         Args:
             game_type: Type of game (clarity, transitions, brevity)
@@ -30,12 +54,33 @@ class GameQuestionService:
         Returns:
             List of generated question dictionaries
         """
-        agent = get_game_question_agent()
-        questions = await agent.generate_questions(game_type, count)
+        # Get existing words to avoid duplicates
+        existing_words = await self.get_existing_words(game_type)
 
-        # Save to database
+        agent = get_game_question_agent()
+        # Request more questions than needed to account for potential duplicates
+        request_count = count + min(len(existing_words), 10)
+        questions = await agent.generate_questions(game_type, request_count, existing_words)
+
+        # Filter out duplicates and limit to requested count
         saved_questions = []
         for question in questions:
+            if len(saved_questions) >= count:
+                break
+
+            # Check for duplicate based on game type
+            is_duplicate = False
+            if "word" in question:
+                is_duplicate = question["word"].lower() in existing_words
+            elif "sentence" in question:
+                is_duplicate = question["sentence"].lower()[:100] in existing_words
+            elif "originalSentence" in question:
+                is_duplicate = question["originalSentence"].lower()[:100] in existing_words
+
+            if is_duplicate:
+                continue
+
+            # Save to database
             db_question = GameQuestion(
                 game_type=game_type,
                 question_json=json.dumps(question, ensure_ascii=False),
@@ -43,7 +88,15 @@ class GameQuestionService:
                 is_reviewed=False,
             )
             self.db.add(db_question)
-            saved_questions.append({**question, "id": None})  # ID will be set after commit
+            saved_questions.append({**question, "id": None})
+
+            # Add to existing words to prevent duplicates within this batch
+            if "word" in question:
+                existing_words.add(question["word"].lower())
+            elif "sentence" in question:
+                existing_words.add(question["sentence"].lower()[:100])
+            elif "originalSentence" in question:
+                existing_words.add(question["originalSentence"].lower()[:100])
 
         await self.db.commit()
 
@@ -87,15 +140,20 @@ class GameQuestionService:
         result = await self.db.execute(stmt)
         questions = result.scalars().all()
 
-        return [
-            {
+        formatted_questions = []
+        for q in questions:
+            question_data = {
                 "id": q.id,
                 **json.loads(q.question_json),
                 "difficulty": q.difficulty,
                 "is_reviewed": q.is_reviewed,
             }
-            for q in questions
-        ]
+            # Shuffle options to prevent correct answer from always being first
+            if "options" in question_data and isinstance(question_data["options"], list):
+                random.shuffle(question_data["options"])
+            formatted_questions.append(question_data)
+
+        return formatted_questions
 
     async def get_question_stats(self) -> dict:
         """Get statistics about stored questions."""
@@ -129,3 +187,53 @@ class GameQuestionService:
         question.is_reviewed = reviewed
         await self.db.commit()
         return True
+
+    async def delete_question(self, question_id: int) -> bool:
+        """Delete a question."""
+        stmt = select(GameQuestion).where(GameQuestion.id == question_id)
+        result = await self.db.execute(stmt)
+        question = result.scalar_one_or_none()
+
+        if not question:
+            return False
+
+        await self.db.delete(question)
+        await self.db.commit()
+        return True
+
+    async def update_question(self, question_id: int, updates: dict) -> Optional[dict]:
+        """Update a question."""
+        stmt = select(GameQuestion).where(GameQuestion.id == question_id)
+        result = await self.db.execute(stmt)
+        question = result.scalar_one_or_none()
+
+        if not question:
+            return None
+
+        # Update fields if present in updates
+        if "question_json" in updates:
+            # Validate JSON string
+            if isinstance(updates["question_json"], (dict, list)):
+                 question.question_json = json.dumps(updates["question_json"], ensure_ascii=False)
+            else:
+                 # Assume it's already a string, try to validate it
+                 try:
+                     json.loads(updates["question_json"])
+                     question.question_json = updates["question_json"]
+                 except json.JSONDecodeError:
+                     raise ValueError("Invalid JSON format")
+
+        if "difficulty" in updates:
+            question.difficulty = updates["difficulty"]
+
+        if "is_reviewed" in updates:
+            question.is_reviewed = updates["is_reviewed"]
+
+        await self.db.commit()
+        
+        return {
+            "id": question.id,
+            **json.loads(question.question_json),
+            "difficulty": question.difficulty,
+            "is_reviewed": question.is_reviewed,
+        }

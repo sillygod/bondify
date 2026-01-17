@@ -1,29 +1,46 @@
-# English Learning Application
+# Bondify - English Learning Application
 
-An AI-powered English learning application with conversation practice, vocabulary lookup, and sentence rephrasing features. Built with React/TypeScript frontend and FastAPI/Python backend, integrated with LLM services (Gemini/Mistral).
+An AI-powered English learning application with vocabulary games, conversation practice, and progress tracking. Built with React/TypeScript frontend and FastAPI/Python backend, integrated with Google Gemini API.
 
 ## Features
 
-- **Conversation Practice**: Practice English conversations with an AI tutor that provides grammar corrections and feedback
-- **Vocabulary Lookup**: Get comprehensive word information including etymology, pronunciation, synonyms, and usage examples
-- **Sentence Rephrasing**: Analyze sentences for grammar issues and get multiple rephrasing suggestions
+### Learning Games
+- **Rocket Game**: Match words with their synonyms
+- **Recall Challenge**: Type the word from its definition
+- **Diction Game**: Identify correct/incorrect word usage
+- **Clarity Game**: Improve sentence clarity
+- **Brevity Game**: Make sentences more concise
+- **Transitions Game**: Practice transition words
+
+### Core Features
+- **Conversation Practice**: Practice English with AI tutor providing grammar corrections
+- **Vocabulary Lookup**: Get etymology, pronunciation, synonyms, and usage examples
+- **Sentence Rephrasing**: Analyze sentences and get rephrasing suggestions
 - **Progress Tracking**: Track learning streaks, XP, and achievements
-- **User Authentication**: Secure JWT-based authentication system
+- **Admin Interface**: Manage AI-generated questions
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Architecture](./docs/architecture.md) | System overview and data flow |
+| [TanStack Query](./docs/tanstack-query.md) | Data fetching hooks usage |
+| [Game Questions API](./docs/game-questions.md) | Question types and API endpoints |
+| [Admin Interface](./docs/admin.md) | Admin features documentation |
 
 ## Tech Stack
 
 ### Frontend
-- React 18 with TypeScript
-- Vite for build tooling
-- Tailwind CSS for styling
-- shadcn/ui components
+- React 18 + TypeScript + Vite
+- **TanStack Query** for server state management
+- Tailwind CSS + shadcn/ui components
+- Framer Motion for animations
 
 ### Backend
 - FastAPI (Python 3.11+)
 - SQLAlchemy with async support
-- LangChain & LangGraph for LLM integration
-- SQLite (development) / PostgreSQL (production)
-- JWT authentication with python-jose
+- Google Gemini API for AI features
+- SQLite (dev) / PostgreSQL (prod)
 
 ## Project Structure
 
@@ -33,20 +50,20 @@ An AI-powered English learning application with conversation practice, vocabular
 │   │   ├── api/            # API endpoints
 │   │   ├── llm/            # LLM agents and prompts
 │   │   ├── models/         # SQLAlchemy models
-│   │   ├── schemas/        # Pydantic schemas
 │   │   ├── services/       # Business logic
-│   │   ├── config.py       # Configuration
-│   │   ├── database.py     # Database setup
-│   │   └── main.py         # FastAPI app entry
-│   ├── requirements.txt
+│   │   └── main.py         # FastAPI entry
 │   └── .env.example
 ├── src/                     # React frontend
 │   ├── components/         # UI components
-│   ├── lib/api/           # API client functions
-│   ├── pages/             # Page components
-│   └── ...
-└── .kiro/specs/           # Feature specifications
+│   ├── contexts/           # React contexts
+│   ├── hooks/              # Custom hooks (TanStack Query)
+│   ├── lib/api/            # API client functions
+│   ├── pages/              # Page components
+│   └── admin/              # Admin interface
+├── docs/                    # Documentation
+└── docker-compose.yml
 ```
+
 
 ## Quick Start
 
