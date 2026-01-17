@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
+import { useGameProgress } from "@/hooks/useGameProgress";
 
 interface WordPart {
   type: "prefix" | "root" | "suffix";
@@ -94,6 +95,12 @@ const WordParts = () => {
     return () => setHideHeader(false);
   }, [gameState, setHideHeader]);
 
+  const { resetProgress } = useGameProgress({
+    gameState,
+    score,
+    wordsLearned: currentQuestionIndex,
+  });
+
   const generateQuestions = useCallback((): Question[] => {
     const wordsWithParts = vocabularyData.filter(
       (w) => w.prefix || w.root || w.suffix
@@ -134,7 +141,7 @@ const WordParts = () => {
         if (parts[missingPartIndex].type === "suffix") return p.startsWith("-") && !p.endsWith("-");
         return !p.startsWith("-") && !p.endsWith("-");
       });
-      
+
       const wrongOptions = sameTypeParts
         .filter((p) => p !== correctPart)
         .sort(() => Math.random() - 0.5)
@@ -158,8 +165,9 @@ const WordParts = () => {
     setStreak(0);
     setSelectedAnswer(null);
     setIsCorrect(null);
+    resetProgress();
     setGameState("playing");
-  }, [generateQuestions]);
+  }, [generateQuestions, resetProgress]);
 
   const handleAnswer = (answer: string) => {
     if (selectedAnswer) return;

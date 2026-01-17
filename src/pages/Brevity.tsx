@@ -4,6 +4,7 @@ import { Scissors, Trophy, RotateCcw, Check, X, Lightbulb, ArrowLeft } from "luc
 import { Button } from "@/components/ui/button";
 import { BrevitySentence, getRandomBrevitySentences } from "@/data/brevityData";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
+import { useGameProgress } from "@/hooks/useGameProgress";
 import { useNavigate } from "react-router-dom";
 
 type GameState = "ready" | "playing" | "showingResult" | "ended";
@@ -31,6 +32,12 @@ const Brevity = () => {
     return () => setHideHeader(false);
   }, [gameState, setHideHeader]);
 
+  const { resetProgress } = useGameProgress({
+    gameState,
+    score: score * 100,
+    wordsLearned: currentIndex,
+  });
+
   const startGame = useCallback(() => {
     const newSentences = getRandomBrevitySentences(totalQuestions);
     setSentences(newSentences);
@@ -39,8 +46,9 @@ const Brevity = () => {
     setStreak(0);
     setSelectedWord(null);
     setIsCorrect(null);
+    resetProgress();
     setGameState("playing");
-  }, []);
+  }, [resetProgress]);
 
   // Get the actual start index of redundant part by finding it in the sentence
   const getRedundantBounds = () => {

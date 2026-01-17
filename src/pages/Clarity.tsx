@@ -4,6 +4,7 @@ import { Sparkles, Trophy, RotateCcw, Check, X, Lightbulb, ArrowLeft } from "luc
 import { Button } from "@/components/ui/button";
 import { ClaritySentence, getRandomClaritySentences } from "@/data/clarityData";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
+import { useGameProgress } from "@/hooks/useGameProgress";
 import { useNavigate } from "react-router-dom";
 
 type GameState = "ready" | "playing" | "selectingAnswer" | "showingResult" | "ended";
@@ -32,6 +33,13 @@ const Clarity = () => {
     return () => setHideHeader(false);
   }, [gameState, setHideHeader]);
 
+  // Track progress for streak updates
+  const { resetProgress } = useGameProgress({
+    gameState,
+    score: score * 100, // Convert to points
+    wordsLearned: currentIndex,
+  });
+
   const startGame = useCallback(() => {
     const newSentences = getRandomClaritySentences(totalQuestions);
     setSentences(newSentences);
@@ -42,22 +50,23 @@ const Clarity = () => {
     setSelectedAnswer(null);
     setIsCorrectPart(null);
     setIsCorrectAnswer(null);
+    resetProgress(); // Reset progress tracking for new game
     setGameState("playing");
-  }, []);
+  }, [resetProgress]);
 
   const handlePartClick = (start: number, end: number) => {
     if (gameState !== "playing") return;
-    
+
     setSelectedPart({ start, end });
-    
+
     const wordy = currentSentence.wordyPart;
     const wordyStart = wordy.startIndex;
     const wordyEnd = wordy.startIndex + wordy.text.length;
-    
+
     // Check if clicked word is within the wordy part
     const isCorrect = start >= wordyStart && end <= wordyEnd;
     setIsCorrectPart(isCorrect);
-    
+
     if (isCorrect) {
       setGameState("selectingAnswer");
     } else {
@@ -70,11 +79,11 @@ const Clarity = () => {
 
   const handleAnswerSelect = (answer: string) => {
     if (gameState !== "selectingAnswer") return;
-    
+
     setSelectedAnswer(answer);
     const isCorrect = answer === currentSentence.correctOption;
     setIsCorrectAnswer(isCorrect);
-    
+
     if (isCorrect && isCorrectPart) {
       setScore(prev => prev + 1);
       setStreak(prev => prev + 1);
@@ -85,7 +94,7 @@ const Clarity = () => {
     } else {
       setStreak(0);
     }
-    
+
     setGameState("showingResult");
   };
 
@@ -105,24 +114,24 @@ const Clarity = () => {
   // Split sentence into individual clickable words
   const renderSentence = () => {
     if (!currentSentence) return null;
-    
+
     const sentence = currentSentence.sentence;
     const wordy = currentSentence.wordyPart;
     const words: { text: string; start: number; end: number; isWordy: boolean }[] = [];
-    
+
     // Split by words
     const regex = /(\S+)/g;
     let match;
-    
+
     while ((match = regex.exec(sentence)) !== null) {
       const wordStart = match.index;
       const wordEnd = match.index + match[0].length;
-      
+
       // Check if this word is within the wordy part
       const wordyStart = wordy.startIndex;
       const wordyEnd = wordy.startIndex + wordy.text.length;
       const isWordy = wordStart >= wordyStart && wordEnd <= wordyEnd;
-      
+
       words.push({
         text: match[0],
         start: wordStart,
@@ -132,22 +141,22 @@ const Clarity = () => {
     }
 
     const showCorrectHighlight = gameState !== "playing";
-    
+
     return (
       <div className="flex flex-wrap gap-2 justify-center text-xl leading-relaxed">
         {words.map((word, index) => {
-          const isClickedWord = selectedPart && 
-            word.start === selectedPart.start && 
+          const isClickedWord = selectedPart &&
+            word.start === selectedPart.start &&
             word.end === selectedPart.end;
-          
+
           // Highlight all wordy words when showing results or selecting answer
           const isWordyHighlighted = word.isWordy && showCorrectHighlight;
-          
+
           // Determine highlight style
           const isCorrectlyIdentified = isWordyHighlighted && isCorrectPart;
           const isIncorrectlyMissed = isWordyHighlighted && !isCorrectPart;
           const isWrongClick = isClickedWord && !isCorrectPart && !word.isWordy;
-          
+
           return (
             <motion.span
               key={index}
@@ -190,7 +199,7 @@ const Clarity = () => {
             <p className="text-sm text-muted-foreground">Make sentences concise</p>
           </div>
         </div>
-        
+
         {gameState !== "ready" && gameState !== "ended" && (
           <div className="flex items-center gap-4">
             <div className="text-right">
@@ -218,7 +227,7 @@ const Clarity = () => {
               className="text-center"
             >
               <motion.div
-                animate={{ 
+                animate={{
                   rotate: [0, 10, -10, 0],
                   scale: [1, 1.1, 1]
                 }}
@@ -229,13 +238,13 @@ const Clarity = () => {
                   <Sparkles className="w-16 h-16 text-background" />
                 </div>
               </motion.div>
-              
+
               <h2 className="font-display text-3xl font-bold mb-4">Ready to clarify?</h2>
               <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                 Find the wordy parts of sentences and choose a more concise alternative.
                 Click on the wordy phrase, then select the best replacement!
               </p>
-              
+
               <Button
                 onClick={startGame}
                 size="lg"
@@ -276,13 +285,13 @@ const Clarity = () => {
                 className="glass-card rounded-2xl p-8 mb-6"
               >
                 <p className="text-sm text-muted-foreground mb-4 text-center">
-                  {gameState === "playing" 
+                  {gameState === "playing"
                     ? "Click on the wordy part of this sentence:"
                     : gameState === "selectingAnswer"
-                    ? "Now select the best replacement:"
-                    : "Result:"}
+                      ? "Now select the best replacement:"
+                      : "Result:"}
                 </p>
-                
+
                 {renderSentence()}
               </motion.div>
 
@@ -298,7 +307,7 @@ const Clarity = () => {
                       const isSelected = selectedAnswer === option;
                       const isCorrect = option === currentSentence.correctOption;
                       const showResult = gameState === "showingResult";
-                      
+
                       return (
                         <motion.button
                           key={option}
@@ -310,11 +319,11 @@ const Clarity = () => {
                           className={`
                             w-full p-4 rounded-xl text-left transition-all duration-200
                             border
-                            ${showResult && isCorrect 
-                              ? "bg-neon-green/20 border-neon-green text-neon-green" 
+                            ${showResult && isCorrect
+                              ? "bg-neon-green/20 border-neon-green text-neon-green"
                               : showResult && isSelected && !isCorrect
-                              ? "bg-destructive/20 border-destructive text-destructive"
-                              : "glass-card border-border/50 hover:border-primary/50 hover:bg-primary/10"
+                                ? "bg-destructive/20 border-destructive text-destructive"
+                                : "glass-card border-border/50 hover:border-primary/50 hover:bg-primary/10"
                             }
                           `}
                         >
@@ -389,12 +398,12 @@ const Clarity = () => {
                   <Trophy className="w-12 h-12 text-background" />
                 </div>
               </motion.div>
-              
+
               <h2 className="font-display text-3xl font-bold mb-2">Game Complete!</h2>
               <p className="text-muted-foreground mb-6">
                 You've mastered concise writing!
               </p>
-              
+
               <div className="glass-card rounded-2xl p-6 mb-8 max-w-sm mx-auto">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -409,7 +418,7 @@ const Clarity = () => {
                   </div>
                 </div>
               </div>
-              
+
               <Button
                 onClick={startGame}
                 size="lg"

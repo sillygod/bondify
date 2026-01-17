@@ -4,6 +4,7 @@ import { BookCheck, Trophy, RotateCcw, Check, X, Lightbulb, ArrowLeft } from "lu
 import { Button } from "@/components/ui/button";
 import { DictionQuestion, getRandomDictionQuestions } from "@/data/dictionData";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
+import { useGameProgress } from "@/hooks/useGameProgress";
 import { useNavigate } from "react-router-dom";
 
 type GameState = "ready" | "playing" | "showingResult" | "ended";
@@ -30,6 +31,12 @@ const Diction = () => {
     return () => setHideHeader(false);
   }, [gameState, setHideHeader]);
 
+  const { resetProgress } = useGameProgress({
+    gameState,
+    score: score * 100,
+    wordsLearned: currentIndex,
+  });
+
   const startGame = useCallback(() => {
     const newQuestions = getRandomDictionQuestions(totalQuestions);
     setQuestions(newQuestions);
@@ -37,22 +44,23 @@ const Diction = () => {
     setScore(0);
     setStreak(0);
     setSelectedAnswer(null);
+    resetProgress();
     setGameState("playing");
-  }, []);
+  }, [resetProgress]);
 
   const handleAnswer = (answer: boolean) => {
     if (gameState !== "playing") return;
-    
+
     setSelectedAnswer(answer);
     const isCorrect = answer === currentQuestion.isCorrect;
-    
+
     if (isCorrect) {
       setScore(prev => prev + 1);
       setStreak(prev => prev + 1);
     } else {
       setStreak(0);
     }
-    
+
     setGameState("showingResult");
   };
 
@@ -68,15 +76,15 @@ const Diction = () => {
 
   const renderSentence = () => {
     if (!currentQuestion) return null;
-    
+
     const { sentence, highlightedPart } = currentQuestion;
     const startIdx = highlightedPart.startIndex;
     const endIdx = startIdx + highlightedPart.text.length;
-    
+
     const before = sentence.slice(0, startIdx);
     const highlighted = sentence.slice(startIdx, endIdx);
     const after = sentence.slice(endIdx);
-    
+
     return (
       <p className="text-xl leading-relaxed text-center">
         {before}
@@ -120,7 +128,7 @@ const Diction = () => {
             <p className="text-sm text-muted-foreground">Avoid embarrassing errors</p>
           </div>
         </div>
-        
+
         {gameState !== "ready" && gameState !== "ended" && (
           <div className="flex items-center gap-4">
             <div className="text-right">
@@ -148,7 +156,7 @@ const Diction = () => {
               className="text-center"
             >
               <motion.div
-                animate={{ 
+                animate={{
                   rotate: [0, 5, -5, 0],
                   scale: [1, 1.05, 1]
                 }}
@@ -159,13 +167,13 @@ const Diction = () => {
                   <BookCheck className="w-16 h-16 text-background" />
                 </div>
               </motion.div>
-              
+
               <h2 className="font-display text-3xl font-bold mb-4">Master Your Diction</h2>
               <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                 Spot common errors in everyday speech. Learn to avoid embarrassing mistakes
                 in vocabulary, grammar, idioms, and word choice.
               </p>
-              
+
               <Button
                 onClick={startGame}
                 size="lg"
@@ -211,7 +219,7 @@ const Diction = () => {
                 <p className="text-sm text-muted-foreground mb-4 text-center">
                   Is the highlighted part correct?
                 </p>
-                
+
                 {renderSentence()}
               </motion.div>
 
@@ -341,16 +349,16 @@ const Diction = () => {
                   <Trophy className="w-12 h-12 text-background" />
                 </div>
               </motion.div>
-              
+
               <h2 className="font-display text-3xl font-bold mb-2">Game Complete!</h2>
               <p className="text-muted-foreground mb-6">
-                {score >= 8 
-                  ? "Excellent! Your diction is impeccable!" 
-                  : score >= 5 
-                  ? "Good job! Keep practicing to master your diction."
-                  : "Keep learning! These common errors trip up many people."}
+                {score >= 8
+                  ? "Excellent! Your diction is impeccable!"
+                  : score >= 5
+                    ? "Good job! Keep practicing to master your diction."
+                    : "Keep learning! These common errors trip up many people."}
               </p>
-              
+
               <div className="glass-card rounded-2xl p-6 mb-8 max-w-sm mx-auto">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -365,7 +373,7 @@ const Diction = () => {
                   </div>
                 </div>
               </div>
-              
+
               <Button
                 onClick={startGame}
                 size="lg"

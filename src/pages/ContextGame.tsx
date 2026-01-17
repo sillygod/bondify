@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
+import { useGameProgress } from "@/hooks/useGameProgress";
 
 const TOTAL_QUESTIONS = 10;
 
@@ -27,6 +28,12 @@ const ContextGame = () => {
     return () => setHideHeader(false);
   }, [gameState, setHideHeader]);
 
+  const { resetProgress } = useGameProgress({
+    gameState,
+    score,
+    wordsLearned: correctAnswers,
+  });
+
   const initGame = useCallback(() => {
     const shuffled = [...contextQuestions].sort(() => Math.random() - 0.5);
     const selected = shuffled.slice(0, TOTAL_QUESTIONS);
@@ -41,8 +48,9 @@ const ContextGame = () => {
     setIsCorrect(null);
     setScore(0);
     setCorrectAnswers(0);
+    resetProgress();
     setGameState("playing");
-  }, []);
+  }, [resetProgress]);
 
   const currentQuestion = questions[currentQuestionIndex];
 

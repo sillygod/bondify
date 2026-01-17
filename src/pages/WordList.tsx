@@ -1,9 +1,27 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Search, Volume2, Puzzle, Lightbulb, MessageSquare, Users, Loader2, AlertCircle } from "lucide-react";
-import { vocabularyData, Word } from "@/data/vocabulary";
+import {
+  BookOpen,
+  Search,
+  Volume2,
+  Puzzle,
+  Lightbulb,
+  MessageSquare,
+  Users,
+  Loader2,
+  AlertCircle,
+  Plus,
+  Trash2,
+  Check,
+} from "lucide-react";
 import { lookupWord, WordDefinition } from "@/lib/api/vocabulary";
+import {
+  getUserWordlist,
+  addToWordlist,
+  removeFromWordlist,
+  WordlistEntry,
+} from "@/lib/api/wordlist";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-const difficultyColors = {
+const difficultyColors: Record<number, string> = {
   1: "bg-neon-green/20 text-neon-green border-neon-green/30",
   2: "bg-neon-cyan/20 text-neon-cyan border-neon-cyan/30",
   3: "bg-primary/20 text-primary border-primary/30",
@@ -23,34 +41,56 @@ const difficultyColors = {
 const WordList = () => {
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedWord, setSelectedWord] = useState<Word | null>(null);
+  const [selectedWord, setSelectedWord] = useState<WordlistEntry | null>(null);
   const [wordData, setWordData] = useState<WordDefinition | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isApiSearch, setIsApiSearch] = useState(false);
 
+  // User's wordlist from backend
+  const [wordlist, setWordlist] = useState<WordlistEntry[]>([]);
+  const [isLoadingList, setIsLoadingList] = useState(true);
+  const [isAddingWord, setIsAddingWord] = useState(false);
+  const [addSuccess, setAddSuccess] = useState<string | null>(null);
+
+  // Load user's wordlist on mount
+  useEffect(() => {
+    loadWordlist();
+  }, []);
+
+  const loadWordlist = async () => {
+    setIsLoadingList(true);
+    try {
+      const response = await getUserWordlist();
+      setWordlist(response.words);
+    } catch (error) {
+      console.error("Error loading wordlist:", error);
+    } finally {
+      setIsLoadingList(false);
+    }
+  };
+
   // Auto-select word from URL query parameter
   useEffect(() => {
     const wordParam = searchParams.get("word");
-    if (wordParam) {
-      const foundWord = vocabularyData.find(
+    if (wordParam && wordlist.length > 0) {
+      const foundWord = wordlist.find(
         (w) => w.word.toLowerCase() === wordParam.toLowerCase()
       );
       if (foundWord) {
         handleSelectWord(foundWord);
       } else {
-        // If word not in vocabulary, search for it via API
         setSearchQuery(wordParam);
         handleSearchWord(wordParam);
       }
     }
-  }, [searchParams]);
+  }, [searchParams, wordlist]);
 
-  const filteredWords = vocabularyData.filter(
+  const filteredWords = wordlist.filter(
     (word) =>
       word.word.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      word.meaning.toLowerCase().includes(searchQuery.toLowerCase())
+      word.definition.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const speakWord = (word: string) => {
@@ -66,7 +106,7 @@ const WordList = () => {
     }
   };
 
-  const handleSelectWord = async (word: Word) => {
+  const handleSelectWord = async (word: WordlistEntry) => {
     setSelectedWord(word);
     setSearchError(null);
     setIsApiSearch(false);
@@ -82,16 +122,15 @@ const WordList = () => {
     }
   };
 
-  // Search for a word directly via API (for words not in local list)
   const handleSearchWord = async (word?: string) => {
     const searchTerm = word || searchQuery.trim();
     if (!searchTerm) return;
-    
+
     setSearchError(null);
     setIsLoading(true);
     setSelectedWord(null);
     setIsApiSearch(true);
-    
+
     try {
       const result = await lookupWord(searchTerm);
       if (result) {
@@ -100,12 +139,46 @@ const WordList = () => {
         setSearchError(`Could not find "${searchTerm}". Please try another word.`);
         setWordData(null);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error searching word:", error);
-      setSearchError(error.detail || `Error looking up "${searchTerm}". Please try again.`);
+      const errorDetail = (error as { detail?: string })?.detail;
+      setSearchError(errorDetail || `Error looking up "${searchTerm}". Please try again.`);
       setWordData(null);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAddToWordlist = async () => {
+    if (!wordData) return;
+
+    setIsAddingWord(true);
+    setAddSuccess(null);
+
+    try {
+      const newEntry = await addToWordlist(wordData.word);
+      setWordlist(prev => [newEntry, ...prev]);
+      setAddSuccess(wordData.word);
+      setTimeout(() => setAddSuccess(null), 3000);
+    } catch (error: unknown) {
+      console.error("Error adding word:", error);
+      const errorDetail = (error as { detail?: { detail?: string } })?.detail?.detail;
+      setSearchError(errorDetail || "Failed to add word to list");
+    } finally {
+      setIsAddingWord(false);
+    }
+  };
+
+  const handleRemoveFromWordlist = async (word: string) => {
+    try {
+      await removeFromWordlist(word);
+      setWordlist(prev => prev.filter(w => w.word !== word));
+      if (selectedWord?.word === word) {
+        setSelectedWord(null);
+        setWordData(null);
+      }
+    } catch (error) {
+      console.error("Error removing word:", error);
     }
   };
 
@@ -123,6 +196,10 @@ const WordList = () => {
     }
   };
 
+  const isWordInList = useCallback((word: string) => {
+    return wordlist.some(w => w.word.toLowerCase() === word.toLowerCase());
+  }, [wordlist]);
+
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header */}
@@ -133,7 +210,7 @@ const WordList = () => {
         <div>
           <h1 className="font-display font-bold text-2xl neon-text">Word List</h1>
           <p className="text-sm text-muted-foreground">
-            {vocabularyData.length} words in your collection
+            {isLoadingList ? "Loading..." : `${wordlist.length} words in your collection`}
           </p>
         </div>
       </div>
@@ -170,52 +247,96 @@ const WordList = () => {
         </motion.div>
       )}
 
+      {/* Add Success */}
+      {addSuccess && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          className="mb-4 p-4 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 flex items-center gap-2"
+        >
+          <Check className="w-5 h-5 shrink-0" />
+          <p>"{addSuccess}" added to your word list!</p>
+        </motion.div>
+      )}
+
       <div className={cn(
         "grid gap-6",
         isApiSearch && wordData ? "grid-cols-1" : "lg:grid-cols-5"
       )}>
-        {/* Word List - Hide when showing API search results */}
+        {/* Word List */}
         {!(isApiSearch && wordData) && (
           <div className="lg:col-span-2 space-y-3 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
-            {filteredWords.map((word, i) => (
-            <motion.div
-              key={word.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              whileHover={{ scale: 1.01 }}
-              onClick={() => handleSelectWord(word)}
-              className={cn(
-                "glass-card rounded-xl p-4 cursor-pointer transition-all duration-200",
-                selectedWord?.id === word.id && "border-primary/50 shadow-[0_0_20px_hsl(270_100%_65%/0.2)]"
-              )}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-display font-semibold text-lg">{word.word}</h3>
-                    <Badge variant="outline" className={cn("text-xs", difficultyColors[word.difficulty])}>
-                      Lv.{word.difficulty}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground line-clamp-2">{word.meaning}</p>
-                </div>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    speakWord(word.word);
-                  }}
-                  className="p-2 rounded-lg hover:bg-secondary transition-colors"
-                >
-                  <Volume2 className="w-4 h-4 text-muted-foreground" />
-                </button>
+            {isLoadingList ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
-            </motion.div>
-          ))}
-        </div>
+            ) : filteredWords.length === 0 ? (
+              <Card className="glass-card border-border/50">
+                <CardContent className="py-12 text-center">
+                  <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">
+                    {wordlist.length === 0
+                      ? "Your word list is empty. Search for words and add them!"
+                      : "No words match your search"
+                    }
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              filteredWords.map((word, i) => (
+                <motion.div
+                  key={word.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                  whileHover={{ scale: 1.01 }}
+                  onClick={() => handleSelectWord(word)}
+                  className={cn(
+                    "glass-card rounded-xl p-4 cursor-pointer transition-all duration-200",
+                    selectedWord?.id === word.id && "border-primary/50 shadow-[0_0_20px_hsl(270_100%_65%/0.2)]"
+                  )}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-display font-semibold text-lg">{word.word}</h3>
+                        {word.difficulty && (
+                          <Badge variant="outline" className={cn("text-xs", difficultyColors[word.difficulty] || difficultyColors[3])}>
+                            Lv.{word.difficulty}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-2">{word.definition}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          speakWord(word.word);
+                        }}
+                        className="p-2 rounded-lg hover:bg-secondary transition-colors"
+                      >
+                        <Volume2 className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveFromWordlist(word.word);
+                        }}
+                        className="p-2 rounded-lg hover:bg-destructive/20 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </div>
         )}
 
-        {/* Word Details - Full Vocabulary Lookup Content */}
+        {/* Word Details */}
         <div className={cn(
           "lg:sticky lg:top-4 h-fit max-h-[calc(100vh-200px)] overflow-y-auto pr-2",
           isApiSearch && wordData ? "col-span-1" : "lg:col-span-3"
@@ -229,7 +350,7 @@ const WordList = () => {
                 className="flex flex-col items-center justify-center py-16"
               >
                 <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                <p className="text-muted-foreground">Looking up "{selectedWord?.word}"...</p>
+                <p className="text-muted-foreground">Looking up word...</p>
               </motion.div>
             )}
 
@@ -241,6 +362,34 @@ const WordList = () => {
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-4"
               >
+                {/* Add to List Button (for API search results) */}
+                {isApiSearch && !isWordInList(wordData.word) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    <Button
+                      onClick={handleAddToWordlist}
+                      disabled={isAddingWord}
+                      className="w-full rounded-xl bg-gradient-to-r from-primary to-neon-cyan"
+                    >
+                      {isAddingWord ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Plus className="w-4 h-4 mr-2" />
+                      )}
+                      Add "{wordData.word}" to My Word List
+                    </Button>
+                  </motion.div>
+                )}
+
+                {isApiSearch && isWordInList(wordData.word) && (
+                  <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 text-center text-sm">
+                    <Check className="w-4 h-4 inline mr-2" />
+                    This word is already in your list
+                  </div>
+                )}
+
                 {/* Definition Card */}
                 <Card className="glass-card border-border/50">
                   <CardHeader className="pb-3">
@@ -252,14 +401,9 @@ const WordList = () => {
                         </CardTitle>
                         <Badge variant="secondary" className="mt-2">{wordData.partOfSpeech}</Badge>
                       </div>
-                      {selectedWord && (
+                      {selectedWord?.difficulty && (
                         <Badge variant="outline" className={cn("text-sm", difficultyColors[selectedWord.difficulty])}>
                           Level {selectedWord.difficulty}
-                        </Badge>
-                      )}
-                      {isApiSearch && !selectedWord && (
-                        <Badge variant="outline" className="text-sm bg-neon-cyan/20 text-neon-cyan border-neon-cyan/30">
-                          API Search
                         </Badge>
                       )}
                     </div>

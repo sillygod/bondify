@@ -4,6 +4,7 @@ import { Mic, Trophy, RotateCcw, Check, X, Volume2, Lightbulb, ArrowLeft } from 
 import { Button } from "@/components/ui/button";
 import { PronunciationWord, getRandomPronunciationWords } from "@/data/pronunciationData";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
+import { useGameProgress } from "@/hooks/useGameProgress";
 import { useNavigate } from "react-router-dom";
 
 type GameState = "ready" | "playing" | "showingResult" | "ended";
@@ -36,6 +37,12 @@ const Pronunciation = () => {
     }
     return () => setHideHeader(false);
   }, [gameState, setHideHeader]);
+
+  const { resetProgress } = useGameProgress({
+    gameState,
+    score: score * 100,
+    wordsLearned: currentIndex,
+  });
 
   const speakPronunciation = useCallback((pronunciation: string) => {
     if (!pronunciation) return;
@@ -79,36 +86,37 @@ const Pronunciation = () => {
       const showCorrect = Math.random() > 0.5;
       return {
         word,
-        shownPronunciation: showCorrect 
-          ? word.correctPronunciation 
+        shownPronunciation: showCorrect
+          ? word.correctPronunciation
           : word.incorrectPronunciations[Math.floor(Math.random() * word.incorrectPronunciations.length)],
         isShownCorrect: showCorrect
       };
     });
-    
+
     setQuestions(newQuestions);
     setCurrentIndex(0);
     setScore(0);
     setStreak(0);
     setUserAnswer(null);
     setIsCorrect(null);
+    resetProgress();
     setGameState("playing");
-  }, []);
+  }, [resetProgress]);
 
   const handleAnswer = (userSaysCorrect: boolean) => {
     if (gameState !== "playing") return;
-    
+
     setUserAnswer(userSaysCorrect);
     const correct = userSaysCorrect === currentQuestion.isShownCorrect;
     setIsCorrect(correct);
-    
+
     if (correct) {
       setScore(prev => prev + 1);
       setStreak(prev => prev + 1);
     } else {
       setStreak(0);
     }
-    
+
     setGameState("showingResult");
   };
 
@@ -144,7 +152,7 @@ const Pronunciation = () => {
             <p className="text-sm text-muted-foreground">Master correct pronunciation</p>
           </div>
         </div>
-        
+
         {gameState !== "ready" && gameState !== "ended" && (
           <div className="flex items-center gap-4">
             <div className="text-right">
@@ -172,7 +180,7 @@ const Pronunciation = () => {
               className="text-center"
             >
               <motion.div
-                animate={{ 
+                animate={{
                   rotate: [0, 10, -10, 0],
                   scale: [1, 1.1, 1]
                 }}
@@ -183,13 +191,13 @@ const Pronunciation = () => {
                   <Mic className="w-16 h-16 text-background" />
                 </div>
               </motion.div>
-              
+
               <h2 className="font-display text-3xl font-bold mb-4">Ready to practice?</h2>
               <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                 Learn correct pronunciations and avoid common mistakes.
                 Decide if the shown pronunciation is correct or not!
               </p>
-              
+
               <Button
                 onClick={startGame}
                 size="lg"
@@ -230,11 +238,11 @@ const Pronunciation = () => {
                 className="glass-card rounded-2xl p-8 mb-6"
               >
                 <p className="text-sm text-muted-foreground mb-4 text-center">
-                  {gameState === "playing" 
+                  {gameState === "playing"
                     ? "Is this pronunciation correct?"
                     : "Result:"}
                 </p>
-                
+
                 {/* Hidden word display (show ??? when playing) */}
                 <div className="text-center mb-4">
                   <h2 className="font-display text-4xl font-bold mb-2 text-primary">
@@ -315,11 +323,10 @@ const Pronunciation = () => {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`p-4 rounded-xl mb-4 ${
-                      isCorrect 
-                        ? "bg-neon-green/20 border border-neon-green/30" 
+                    className={`p-4 rounded-xl mb-4 ${isCorrect
+                        ? "bg-neon-green/20 border border-neon-green/30"
                         : "bg-destructive/20 border border-destructive/30"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       {isCorrect ? (
@@ -419,12 +426,12 @@ const Pronunciation = () => {
                   <Trophy className="w-12 h-12 text-background" />
                 </div>
               </motion.div>
-              
+
               <h2 className="font-display text-3xl font-bold mb-2">Game Complete!</h2>
               <p className="text-muted-foreground mb-6">
                 You've practiced pronunciation!
               </p>
-              
+
               <div className="glass-card rounded-2xl p-6 mb-8 max-w-sm mx-auto">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -439,7 +446,7 @@ const Pronunciation = () => {
                   </div>
                 </div>
               </div>
-              
+
               <Button
                 onClick={startGame}
                 size="lg"

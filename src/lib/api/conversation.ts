@@ -21,6 +21,13 @@ export interface ConversationMessage {
 export interface ConversationStartResponse {
   session_id: string;
   opening_message: string;
+  topic?: string;
+  target_words?: string[];
+}
+
+export interface ConversationOptions {
+  topic?: string;
+  targetWords?: string[];
 }
 
 export interface ConversationResponse {
@@ -41,8 +48,13 @@ let currentSessionId: string | null = null;
 /**
  * Start a new conversation session
  */
-export async function startConversation(): Promise<ConversationStartResponse> {
-  const response = await api.post<ConversationStartResponse>('/api/conversation/start', {});
+export async function startConversation(
+  options?: ConversationOptions
+): Promise<ConversationStartResponse> {
+  const response = await api.post<ConversationStartResponse>('/api/conversation/start', {
+    topic: options?.topic,
+    target_words: options?.targetWords,
+  });
   currentSessionId = response.session_id;
   return response;
 }
@@ -58,11 +70,11 @@ export async function sendMessage(
     message,
     session_id: sessionId || currentSessionId,
   });
-  
+
   if (response.session_id) {
     currentSessionId = response.session_id;
   }
-  
+
   return response;
 }
 

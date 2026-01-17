@@ -16,7 +16,10 @@ class GrammarCorrection(BaseModel):
 class ConversationStartRequest(BaseModel):
     """Request to start a new conversation."""
 
-    pass  # No parameters needed for now
+    topic: Optional[str] = Field(None, description="Conversation topic or theme")
+    target_words: Optional[list[str]] = Field(
+        None, description="Vocabulary words to practice during conversation"
+    )
 
 
 class ConversationStartResponse(BaseModel):
@@ -24,6 +27,8 @@ class ConversationStartResponse(BaseModel):
 
     session_id: str = Field(..., description="Unique session identifier")
     opening_message: str = Field(..., description="Opening message from the assistant")
+    topic: Optional[str] = Field(None, description="The conversation topic")
+    target_words: Optional[list[str]] = Field(None, description="Words to practice")
 
 
 class ConversationMessageRequest(BaseModel):

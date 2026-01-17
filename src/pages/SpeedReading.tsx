@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Zap, 
-  ArrowLeft, 
-  Trophy, 
-  Play, 
-  Pause, 
+import {
+  Zap,
+  ArrowLeft,
+  Trophy,
+  Play,
+  Pause,
   RotateCcw,
   ChevronRight,
   BookOpen,
@@ -20,6 +20,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { getRandomArticle, Article } from "@/data/speedReadingData";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
+import { useGameProgress } from "@/hooks/useGameProgress";
 
 type GameState = "ready" | "countdown" | "playing" | "paused" | "question" | "result" | "ended";
 
@@ -47,6 +48,12 @@ const SpeedReading = () => {
     setHideHeader(isPlaying);
     return () => setHideHeader(false);
   }, [gameState, setHideHeader]);
+
+  const { resetProgress } = useGameProgress({
+    gameState,
+    score,
+    wordsLearned: correctAnswers,
+  });
 
   // Countdown effect
   useEffect(() => {
@@ -83,17 +90,18 @@ const SpeedReading = () => {
     setScore(0);
     setCorrectAnswers(0);
     setSelectedAnswer(null);
-    
+    resetProgress();
+
     // Split first paragraph into words
     const paragraphWords = newArticle.paragraphs[0].text.split(/\s+/);
     setWords(paragraphWords);
     setCurrentWordIndex(0);
     setGameState("countdown");
-  }, []);
+  }, [resetProgress]);
 
   const startRound = useCallback((roundIndex: number) => {
     if (!article) return;
-    
+
     const paragraphWords = article.paragraphs[roundIndex].text.split(/\s+/);
     setWords(paragraphWords);
     setCurrentWordIndex(0);
@@ -144,21 +152,21 @@ const SpeedReading = () => {
 
   const handleAnswer = (answerIndex: number) => {
     if (selectedAnswer !== null || !article) return;
-    
+
     setSelectedAnswer(answerIndex);
     const isCorrect = answerIndex === article.paragraphs[currentRound].question.correctIndex;
-    
+
     if (isCorrect) {
       setScore((prev) => prev + 100);
       setCorrectAnswers((prev) => prev + 1);
     }
-    
+
     setGameState("result");
   };
 
   const handleNextRound = () => {
     if (!article) return;
-    
+
     if (currentRound + 1 >= article.paragraphs.length) {
       setGameState("ended");
     } else {
@@ -205,7 +213,7 @@ const SpeedReading = () => {
             >
               <Zap className="w-16 h-16 text-primary-foreground" />
             </motion.div>
-            
+
             <h2 className="font-display text-2xl font-bold mb-4">Speed Reading Challenge</h2>
             <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
               Read words at high speed and test your comprehension. Adjust the speed to match your skill level.
@@ -270,7 +278,7 @@ const SpeedReading = () => {
             {/* Countdown Display */}
             <div className="glass-card rounded-3xl p-12 min-h-[300px] flex flex-col items-center justify-center relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-neon-cyan/5 via-transparent to-primary/5" />
-              
+
               <p className="text-muted-foreground mb-4">Get ready...</p>
               <AnimatePresence mode="wait">
                 <motion.div
@@ -286,7 +294,7 @@ const SpeedReading = () => {
                   </span>
                 </motion.div>
               </AnimatePresence>
-              
+
               <motion.div
                 className="w-24 h-1 bg-primary/30 rounded-full mt-8 overflow-hidden"
               >
@@ -335,7 +343,7 @@ const SpeedReading = () => {
             <div className="glass-card rounded-3xl p-12 min-h-[300px] flex flex-col items-center justify-center relative overflow-hidden">
               {/* Background decoration */}
               <div className="absolute inset-0 bg-gradient-to-br from-neon-cyan/5 via-transparent to-primary/5" />
-              
+
               {gameState === "paused" && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -526,7 +534,7 @@ const SpeedReading = () => {
             >
               <Trophy className="w-16 h-16 text-primary-foreground" />
             </motion.div>
-            
+
             <h2 className="font-display text-3xl font-bold mb-2">
               {correctAnswers === 3 ? "Perfect!" : correctAnswers >= 2 ? "Great Job!" : "Keep Practicing!"}
             </h2>

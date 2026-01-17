@@ -26,3 +26,5 @@ class User(BaseModel):
     progress = relationship("UserProgress", back_populates="user", cascade="all, delete-orphan")
     streak = relationship("UserStreak", back_populates="user", uselist=False, cascade="all, delete-orphan")
     achievements = relationship("UserAchievement", back_populates="user", cascade="all, delete-orphan")
+    wordlist = relationship("UserWordlist", back_populates="user", cascade="all, delete-orphan")
+

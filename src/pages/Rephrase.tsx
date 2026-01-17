@@ -2,14 +2,15 @@ import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PenLine, Trophy, RotateCcw, Check, X, Lightbulb, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { 
-  RephraseQuestion, 
-  getProgressiveQuestions, 
-  challengeTypeLabels, 
+import {
+  RephraseQuestion,
+  getProgressiveQuestions,
+  challengeTypeLabels,
   challengeTypeColors,
-  levelLabels 
+  levelLabels
 } from "@/data/rephraseData";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
+import { useGameProgress } from "@/hooks/useGameProgress";
 import { useNavigate } from "react-router-dom";
 
 type GameState = "ready" | "playing" | "showingResult" | "ended";
@@ -27,11 +28,17 @@ const Rephrase = () => {
 
   useEffect(() => {
     setHideHeader(gameState === "playing" || gameState === "showingResult");
-    
+
     return () => {
       setHideHeader(false);
     };
   }, [gameState, setHideHeader]);
+
+  const { resetProgress } = useGameProgress({
+    gameState,
+    score: score * 100,
+    wordsLearned: currentIndex,
+  });
 
   const startGame = useCallback(() => {
     const newQuestions = getProgressiveQuestions(10);
@@ -40,19 +47,20 @@ const Rephrase = () => {
     setScore(0);
     setSelectedAnswer(null);
     setShowExplanation(false);
+    resetProgress();
     setGameState("playing");
-  }, []);
+  }, [resetProgress]);
 
   const handleAnswer = useCallback((answer: string) => {
     if (selectedAnswer) return;
-    
+
     setSelectedAnswer(answer);
     const currentQuestion = questions[currentIndex];
-    
+
     if (answer === currentQuestion.correctAnswer) {
       setScore(prev => prev + 1);
     }
-    
+
     setGameState("showingResult");
   }, [selectedAnswer, questions, currentIndex]);
 
@@ -129,10 +137,10 @@ const Rephrase = () => {
               </div>
               <h2 className="text-3xl font-bold mb-4">Rephrase Master</h2>
               <p className="text-muted-foreground mb-6">
-                Improve paragraphs by choosing better conjunctions, reordering sentences, 
+                Improve paragraphs by choosing better conjunctions, reordering sentences,
                 and rephrasing for clarity and flow.
               </p>
-              
+
               <div className="grid grid-cols-2 gap-4 mb-8 text-sm">
                 <div className="p-4 rounded-xl bg-background/50 border border-border/30">
                   <div className="font-semibold text-neon-cyan mb-1">Conjunctions</div>
@@ -197,13 +205,13 @@ const Rephrase = () => {
                 {currentQuestion.type === "rephrase" && "Choose the best rephrasing:"}
                 {currentQuestion.type === "combine" && "Choose the best combination:"}
               </h3>
-              
+
               <div className="p-4 rounded-xl bg-background/70 border border-border/30 mb-2">
                 <p className="text-foreground text-lg leading-relaxed whitespace-pre-wrap">
                   {currentQuestion.context}
                 </p>
               </div>
-              
+
               {currentQuestion.targetSentence && (
                 <p className="text-sm text-muted-foreground italic">
                   Task: {currentQuestion.targetSentence}
@@ -217,7 +225,7 @@ const Rephrase = () => {
                 const isSelected = selectedAnswer === option;
                 const isCorrectOption = option === currentQuestion.correctAnswer;
                 const showResult = gameState === "showingResult";
-                
+
                 let optionStyle = "bg-card/50 border-border/50 hover:border-primary/50 hover:bg-primary/5";
                 if (showResult) {
                   if (isCorrectOption) {
@@ -318,13 +326,13 @@ const Rephrase = () => {
               </div>
               <h2 className="text-3xl font-bold mb-2">Challenge Complete!</h2>
               <p className="text-muted-foreground mb-6">Great work on improving your writing skills!</p>
-              
+
               <div className="p-6 rounded-xl bg-background/50 mb-6">
                 <div className="text-5xl font-bold text-primary mb-2">{score}/{questions.length}</div>
                 <div className="text-muted-foreground">
-                  {score >= 8 ? "Excellent! You're a master!" : 
-                   score >= 6 ? "Good job! Keep practicing!" : 
-                   "Keep learning, you'll improve!"}
+                  {score >= 8 ? "Excellent! You're a master!" :
+                    score >= 6 ? "Good job! Keep practicing!" :
+                      "Keep learning, you'll improve!"}
                 </div>
               </div>
 

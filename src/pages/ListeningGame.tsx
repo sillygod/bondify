@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { getRandomQuestions, ListeningQuestion } from "@/data/listeningData";
 import { useNavigate } from "react-router-dom";
+import { useGameProgress } from "@/hooks/useGameProgress";
 
 type GameState = "ready" | "playing" | "showingResult" | "ended";
 
@@ -25,6 +26,12 @@ const ListeningGame = () => {
   const currentQuestion = questions[currentIndex];
   const progress = questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0;
 
+  const { resetProgress } = useGameProgress({
+    gameState,
+    score: score * 100,
+    wordsLearned: score,
+  });
+
   const startGame = () => {
     const randomQuestions = getRandomQuestions(5);
     setQuestions(randomQuestions);
@@ -32,6 +39,7 @@ const ListeningGame = () => {
     setScore(0);
     setSelectedAnswer(null);
     setHasListened(false);
+    resetProgress();
     setGameState("playing");
   };
 
@@ -52,21 +60,21 @@ const ListeningGame = () => {
       setCurrentSpeakerIndex(index);
       const line = currentQuestion.conversation[index];
       const utterance = new SpeechSynthesisUtterance(line.text);
-      
+
       // Alternate voices for different speakers
       const voices = window.speechSynthesis.getVoices();
       const englishVoices = voices.filter(v => v.lang.startsWith('en'));
       if (englishVoices.length > 1) {
         utterance.voice = englishVoices[index % 2];
       }
-      
+
       utterance.rate = 0.9;
       utterance.pitch = index % 2 === 0 ? 1 : 1.1;
-      
+
       utterance.onend = () => {
         setTimeout(() => speakLine(index + 1), 500);
       };
-      
+
       speechRef.current = utterance;
       window.speechSynthesis.speak(utterance);
     };
@@ -81,7 +89,7 @@ const ListeningGame = () => {
 
   const handleAnswer = (answerIndex: number) => {
     if (selectedAnswer !== null) return;
-    
+
     setSelectedAnswer(answerIndex);
     if (answerIndex === currentQuestion.correctAnswer) {
       setScore(prev => prev + 1);
@@ -103,7 +111,7 @@ const ListeningGame = () => {
   useEffect(() => {
     // Load voices
     window.speechSynthesis.getVoices();
-    
+
     return () => {
       window.speechSynthesis.cancel();
     };
@@ -125,7 +133,7 @@ const ListeningGame = () => {
           <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
             <Headphones className="w-10 h-10 text-white" />
           </div>
-          
+
           <div>
             <h1 className="text-3xl font-bold mb-2">Listening & Response</h1>
             <p className="text-muted-foreground">
@@ -150,7 +158,7 @@ const ListeningGame = () => {
                   Choose the most appropriate response from 3 options
                 </li>
               </ul>
-              
+
               <div className="flex items-center justify-center gap-4 pt-4">
                 <Badge variant="outline" className="flex items-center gap-1">
                   <Users className="w-3 h-3" />
@@ -174,7 +182,7 @@ const ListeningGame = () => {
 
   if (gameState === "ended") {
     const percentage = Math.round((score / questions.length) * 100);
-    
+
     return (
       <div className="max-w-2xl mx-auto">
         <motion.div
@@ -185,7 +193,7 @@ const ListeningGame = () => {
           <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
             <Headphones className="w-12 h-12 text-white" />
           </div>
-          
+
           <div>
             <h2 className="text-3xl font-bold mb-2">Session Complete!</h2>
             <p className="text-muted-foreground">Great listening practice</p>
@@ -198,8 +206,8 @@ const ListeningGame = () => {
               </div>
               <p className="text-muted-foreground">
                 {percentage >= 80 ? "Excellent understanding!" :
-                 percentage >= 60 ? "Good job! Keep practicing." :
-                 "Keep listening and learning!"}
+                  percentage >= 60 ? "Good job! Keep practicing." :
+                    "Keep listening and learning!"}
               </p>
             </CardContent>
           </Card>
@@ -276,20 +284,18 @@ const ListeningGame = () => {
                   <motion.div
                     key={index}
                     initial={{ opacity: 0.5 }}
-                    animate={{ 
+                    animate={{
                       opacity: isPlaying && currentSpeakerIndex === index ? 1 : 0.7,
                       scale: isPlaying && currentSpeakerIndex === index ? 1.02 : 1,
                     }}
-                    className={`p-3 rounded-lg transition-colors ${
-                      isPlaying && currentSpeakerIndex === index 
-                        ? "bg-primary/20 border border-primary/30" 
+                    className={`p-3 rounded-lg transition-colors ${isPlaying && currentSpeakerIndex === index
+                        ? "bg-primary/20 border border-primary/30"
                         : "bg-muted/50"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
-                        index % 2 === 0 ? "bg-blue-500/20 text-blue-400" : "bg-green-500/20 text-green-400"
-                      }`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${index % 2 === 0 ? "bg-blue-500/20 text-blue-400" : "bg-green-500/20 text-green-400"
+                        }`}>
                         {line.speaker.charAt(0)}
                       </div>
                       <div>
@@ -326,8 +332,7 @@ const ListeningGame = () => {
                   transition={{ delay: index * 0.1 }}
                   onClick={() => handleAnswer(index)}
                   disabled={showResult || !hasListened}
-                  className={`w-full p-4 rounded-xl border text-left transition-all ${
-                    !hasListened
+                  className={`w-full p-4 rounded-xl border text-left transition-all ${!hasListened
                       ? "opacity-50 cursor-not-allowed border-border/50 bg-muted/30"
                       : showResult
                         ? isCorrect
@@ -336,16 +341,15 @@ const ListeningGame = () => {
                             ? "border-red-500 bg-red-500/20"
                             : "border-border/50 bg-muted/30 opacity-50"
                         : "border-border/50 bg-card hover:border-primary/50 hover:bg-primary/10 cursor-pointer"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-3">
-                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      showResult && isCorrect
+                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${showResult && isCorrect
                         ? "bg-green-500 text-white"
                         : showResult && isSelected
                           ? "bg-red-500 text-white"
                           : "bg-muted"
-                    }`}>
+                      }`}>
                       {showResult && isCorrect ? (
                         <CheckCircle className="w-4 h-4" />
                       ) : showResult && isSelected ? (

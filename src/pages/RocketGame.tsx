@@ -1,57 +1,476 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, AnimatePresence, useAnimation } from "framer-motion";
-import { Rocket, Star, ArrowLeft, Trophy } from "lucide-react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Trophy, Star, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { vocabularyData, getRandomSynonyms, Word } from "@/data/vocabulary";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
+import { fetchRocketQuestions, RocketQuestion } from "@/lib/api/gameQuestions";
+import { recordActivity } from "@/lib/api/progress";
+
+// Fallback mock data for when API is unavailable
+import { vocabularyData, getRandomSynonyms } from "@/data/vocabulary";
 
 const TOTAL_QUESTIONS = 10;
 const INITIAL_FUEL = 100;
 const FUEL_LOSS = 25;
 const FUEL_GAIN = 10;
-const DESCENT_DURATION = 12; // seconds to fall (slower descent)
-const BOOST_AMOUNT = 50; // how much the rocket boosts up (percentage of container)
+const DESCENT_DURATION = 12;
+const BOOST_AMOUNT = 50;
 
+// =============================================================================
+// Custom SVG Rocket Component
+// =============================================================================
+const RocketShip = ({
+  isCorrect,
+  isBoosting,
+  fuel
+}: {
+  isCorrect: boolean | null;
+  isBoosting: boolean;
+  fuel: number;
+}) => {
+  const glowColor = isCorrect === true
+    ? "hsl(150 100% 50%)"
+    : isCorrect === false
+      ? "hsl(0 84% 60%)"
+      : "hsl(270 100% 65%)";
+
+  return (
+    <div className="relative scale-75 origin-center">
+      {/* Rocket SVG */}
+      <svg
+        width="80"
+        height="120"
+        viewBox="0 0 80 120"
+        className="drop-shadow-2xl"
+        style={{
+          filter: `drop-shadow(0 0 15px ${glowColor})`
+        }}
+      >
+        {/* Rocket Body Gradient */}
+        <defs>
+          <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="hsl(270 100% 75%)" />
+            <stop offset="50%" stopColor="hsl(270 100% 60%)" />
+            <stop offset="100%" stopColor="hsl(280 100% 45%)" />
+          </linearGradient>
+          <linearGradient id="noseGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="hsl(0 0% 95%)" />
+            <stop offset="50%" stopColor="hsl(0 0% 80%)" />
+            <stop offset="100%" stopColor="hsl(0 0% 65%)" />
+          </linearGradient>
+          <linearGradient id="finGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="hsl(320 100% 65%)" />
+            <stop offset="100%" stopColor="hsl(320 100% 45%)" />
+          </linearGradient>
+          <radialGradient id="windowGradient" cx="50%" cy="30%" r="50%">
+            <stop offset="0%" stopColor="hsl(180 100% 80%)" />
+            <stop offset="70%" stopColor="hsl(180 100% 50%)" />
+            <stop offset="100%" stopColor="hsl(200 100% 40%)" />
+          </radialGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        {/* Left Fin */}
+        <path
+          d="M15 85 L25 70 L25 95 L15 105 Z"
+          fill="url(#finGradient)"
+          className="drop-shadow-lg"
+        />
+
+        {/* Right Fin */}
+        <path
+          d="M65 85 L55 70 L55 95 L65 105 Z"
+          fill="url(#finGradient)"
+          className="drop-shadow-lg"
+        />
+
+        {/* Main Body */}
+        <ellipse
+          cx="40"
+          cy="65"
+          rx="18"
+          ry="35"
+          fill="url(#bodyGradient)"
+          stroke="hsl(270 50% 40%)"
+          strokeWidth="1"
+        />
+
+        {/* Nose Cone */}
+        <path
+          d="M40 10 L55 45 L25 45 Z"
+          fill="url(#noseGradient)"
+          stroke="hsl(0 0% 60%)"
+          strokeWidth="0.5"
+        />
+
+        {/* Window */}
+        <circle
+          cx="40"
+          cy="55"
+          r="8"
+          fill="url(#windowGradient)"
+          stroke="hsl(180 50% 30%)"
+          strokeWidth="2"
+          filter="url(#glow)"
+        />
+
+        {/* Window Shine */}
+        <ellipse
+          cx="37"
+          cy="52"
+          rx="3"
+          ry="2"
+          fill="hsla(0, 0%, 100%, 0.6)"
+        />
+
+        {/* Body Stripes */}
+        <rect x="30" y="75" width="20" height="3" fill="hsl(270 50% 40%)" rx="1" />
+        <rect x="30" y="82" width="20" height="3" fill="hsl(270 50% 40%)" rx="1" />
+
+        {/* Thruster Base */}
+        <ellipse
+          cx="40"
+          cy="98"
+          rx="12"
+          ry="4"
+          fill="hsl(0 0% 40%)"
+        />
+      </svg>
+
+      {/* Exhaust Flames */}
+      {fuel > 0 && (
+        <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center">
+          {/* Core Flame */}
+          <motion.div
+            animate={{
+              scaleY: isBoosting ? [1.5, 2.5, 1.5] : [0.8, 1.3, 0.8],
+              opacity: isBoosting ? [0.9, 1, 0.9] : [0.7, 1, 0.7],
+            }}
+            transition={{
+              duration: isBoosting ? 0.1 : 0.15,
+              repeat: Infinity,
+            }}
+            className="origin-top"
+          >
+            <div
+              className={cn(
+                "rounded-full blur-[2px]",
+                isBoosting
+                  ? "w-8 h-20 bg-gradient-to-b from-white via-cyan-300 to-cyan-500"
+                  : "w-6 h-14 bg-gradient-to-b from-yellow-200 via-orange-400 to-red-500"
+              )}
+            />
+          </motion.div>
+
+          {/* Outer Glow */}
+          <motion.div
+            animate={{
+              opacity: [0.4, 0.8, 0.4],
+              scale: [0.9, 1.1, 0.9]
+            }}
+            transition={{ duration: 0.2, repeat: Infinity }}
+            className={cn(
+              "absolute top-0 rounded-full blur-lg",
+              isBoosting
+                ? "w-12 h-24 bg-cyan-400/50"
+                : "w-8 h-16 bg-orange-400/40"
+            )}
+          />
+
+          {/* Sparks when boosting */}
+          {isBoosting && (
+            <>
+              {[...Array(8)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-2 h-2 rounded-full bg-cyan-300"
+                  initial={{ y: 0, x: 0, opacity: 1, scale: 1 }}
+                  animate={{
+                    y: [0, 40 + Math.random() * 30],
+                    x: [(Math.random() - 0.5) * 40, (Math.random() - 0.5) * 60],
+                    opacity: [1, 0],
+                    scale: [1, 0.2],
+                  }}
+                  transition={{
+                    duration: 0.4,
+                    delay: i * 0.04,
+                    repeat: Infinity,
+                  }}
+                />
+              ))}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// =============================================================================
+// Space Background Component
+// =============================================================================
+const SpaceBackground = () => {
+  const stars = useMemo(() =>
+    [...Array(50)].map((_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      size: Math.random() * 2 + 1,
+      delay: Math.random() * 3,
+      duration: 1 + Math.random() * 2,
+    })), []
+  );
+
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      {/* Deep Space Gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-purple-950/50 to-slate-950" />
+
+      {/* Nebula Effects */}
+      <div className="absolute top-10 -left-20 w-80 h-80 bg-purple-600/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-20 -right-20 w-60 h-60 bg-cyan-600/10 rounded-full blur-3xl" />
+      <div className="absolute top-1/2 left-1/3 w-40 h-40 bg-pink-600/10 rounded-full blur-2xl" />
+
+      {/* Distant Planet */}
+      <div className="absolute top-8 right-8 w-16 h-16">
+        <div className="w-full h-full rounded-full bg-gradient-to-br from-orange-300/30 via-orange-500/20 to-red-600/30 blur-[1px]" />
+        {/* Planet Ring */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-6 border border-orange-300/20 rounded-full -rotate-12" />
+      </div>
+
+      {/* Stars Layer */}
+      {stars.map((star) => (
+        <motion.div
+          key={star.id}
+          className="absolute rounded-full bg-white"
+          style={{
+            left: `${star.left}%`,
+            top: `${star.top}%`,
+            width: star.size,
+            height: star.size,
+          }}
+          animate={{
+            opacity: [0.3, 1, 0.3],
+            scale: [0.8, 1.2, 0.8],
+          }}
+          transition={{
+            duration: star.duration,
+            repeat: Infinity,
+            delay: star.delay,
+          }}
+        />
+      ))}
+
+      {/* Shooting Star (occasional) */}
+      <motion.div
+        className="absolute w-1 h-1 bg-white rounded-full"
+        initial={{ top: "10%", left: "80%", opacity: 0 }}
+        animate={{
+          top: ["10%", "40%"],
+          left: ["80%", "50%"],
+          opacity: [0, 1, 1, 0],
+        }}
+        transition={{
+          duration: 1,
+          repeat: Infinity,
+          repeatDelay: 8,
+        }}
+      >
+        <div className="absolute w-20 h-[2px] bg-gradient-to-r from-white to-transparent -left-20 top-0" />
+      </motion.div>
+    </div>
+  );
+};
+
+// =============================================================================
+// Circular Fuel Gauge Component
+// =============================================================================
+const FuelGauge = ({ fuel }: { fuel: number }) => {
+  const circumference = 2 * Math.PI * 28;
+  const strokeDashoffset = circumference - (fuel / 100) * circumference;
+
+  const fuelColor = fuel > 50
+    ? "hsl(150 100% 50%)"
+    : fuel > 25
+      ? "hsl(30 100% 55%)"
+      : "hsl(0 84% 60%)";
+
+  return (
+    <div className="relative w-16 h-16 flex-shrink-0">
+      <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
+        {/* Background Circle */}
+        <circle
+          cx="32"
+          cy="32"
+          r="28"
+          fill="none"
+          stroke="hsl(260 30% 20%)"
+          strokeWidth="5"
+        />
+        {/* Fuel Level - with glow effect via stroke properties */}
+        <motion.circle
+          cx="32"
+          cy="32"
+          r="28"
+          fill="none"
+          stroke={fuelColor}
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          animate={{ strokeDashoffset }}
+          transition={{ type: "spring", damping: 15 }}
+        />
+        {/* Glow layer - slightly larger and blurred */}
+        <motion.circle
+          cx="32"
+          cy="32"
+          r="28"
+          fill="none"
+          stroke={fuelColor}
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          animate={{ strokeDashoffset }}
+          transition={{ type: "spring", damping: 15 }}
+          opacity={0.3}
+          style={{ filter: 'blur(3px)' }}
+        />
+      </svg>
+
+      {/* Center Content */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <motion.span
+          className="text-sm font-bold font-display"
+          animate={{ color: fuelColor }}
+        >
+          {fuel}%
+        </motion.span>
+      </div>
+    </div>
+  );
+};
+
+// =============================================================================
+// Main RocketGame Component
+// =============================================================================
 const RocketGame = () => {
   const navigate = useNavigate();
   const { setHideHeader } = useLayoutControl();
-  const [gameState, setGameState] = useState<"ready" | "playing" | "ended">("ready");
+
+  // Game state
+  const [gameState, setGameState] = useState<"ready" | "loading" | "playing" | "ended">("ready");
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [fuel, setFuel] = useState(INITIAL_FUEL);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
-  const [questions, setQuestions] = useState<Word[]>([]);
-  const [options, setOptions] = useState<string[]>([]);
+  const [questions, setQuestions] = useState<RocketQuestion[]>([]);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
-  const [rocketY, setRocketY] = useState(0); // 0 = top, 100 = bottom
+  const [rocketY, setRocketY] = useState(0);
   const [isBoosting, setIsBoosting] = useState(false);
+  const [screenShake, setScreenShake] = useState(false);
+
+  // API state
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [usingMockData, setUsingMockData] = useState(false);
+  const [progressRecorded, setProgressRecorded] = useState(false);
+
+  // Refs
   const animationFrameRef = useRef<number>();
   const lastTimeRef = useRef<number>(0);
+  const gameStartTimeRef = useRef<number>(0);
 
   // Hide header/sidebar when playing
   useEffect(() => {
     setHideHeader(gameState === "playing");
+    if (gameState === "playing") {
+      gameStartTimeRef.current = Date.now();
+    }
     return () => setHideHeader(false);
   }, [gameState, setHideHeader]);
 
-  const initGame = useCallback(() => {
-    const shuffled = [...vocabularyData].sort(() => Math.random() - 0.5);
-    const selected = shuffled.slice(0, TOTAL_QUESTIONS);
-    setQuestions(selected);
-    setCurrentQuestionIndex(0);
-    setFuel(INITIAL_FUEL);
-    setScore(0);
-    setStreak(0);
-    setSelectedAnswer(null);
-    setIsCorrect(null);
-    setRocketY(0);
-    setIsBoosting(false);
-    setGameState("playing");
+  // Record progress when game ends
+  useEffect(() => {
+    if (gameState === "ended" && !progressRecorded && score > 0) {
+      const recordProgress = async () => {
+        try {
+          const timeSpent = Math.round((Date.now() - gameStartTimeRef.current) / 60000); // minutes
+          await recordActivity({
+            xp: Math.round(score / 10), // Convert game score to XP
+            wordsLearned: currentQuestionIndex,
+            timeSpentMinutes: Math.max(1, timeSpent), // At least 1 minute
+          });
+          setProgressRecorded(true);
+          console.log("Progress recorded successfully");
+        } catch (error) {
+          console.error("Failed to record progress:", error);
+        }
+      };
+      recordProgress();
+    }
+  }, [gameState, progressRecorded, score, currentQuestionIndex]);
+
+  // Load questions from API
+  const loadQuestions = useCallback(async () => {
+    setGameState("loading");
+    setApiError(null);
+    setUsingMockData(false);
+
+    try {
+      const apiQuestions = await fetchRocketQuestions(TOTAL_QUESTIONS);
+
+      if (apiQuestions.length > 0) {
+        setQuestions(apiQuestions);
+        return true;
+      } else {
+        // No questions in API, use fallback
+        throw new Error("No questions available");
+      }
+    } catch (error) {
+      console.warn("API unavailable, using mock data:", error);
+      setUsingMockData(true);
+
+      // Fallback to mock data
+      const shuffled = [...vocabularyData].sort(() => Math.random() - 0.5);
+      const selected = shuffled.slice(0, TOTAL_QUESTIONS);
+      const mockQuestions: RocketQuestion[] = selected.map((word, index) => {
+        const correctSynonym = word.synonyms[Math.floor(Math.random() * word.synonyms.length)];
+        return {
+          id: index,
+          word: word.word,
+          meaning: word.meaning,
+          correctSynonym,
+          options: getRandomSynonyms(correctSynonym, word.synonyms, 4),
+        };
+      });
+      setQuestions(mockQuestions);
+      return true;
+    }
   }, []);
+
+  const initGame = useCallback(async () => {
+    const loaded = await loadQuestions();
+    if (loaded) {
+      setCurrentQuestionIndex(0);
+      setFuel(INITIAL_FUEL);
+      setScore(0);
+      setStreak(0);
+      setSelectedAnswer(null);
+      setIsCorrect(null);
+      setRocketY(0);
+      setIsBoosting(false);
+      setProgressRecorded(false); // Reset for new game
+      setGameState("playing");
+    }
+  }, [loadQuestions]);
 
   // Continuous descent animation
   useEffect(() => {
@@ -61,15 +480,14 @@ const RocketGame = () => {
       if (lastTimeRef.current === 0) {
         lastTimeRef.current = currentTime;
       }
-      
-      const deltaTime = (currentTime - lastTimeRef.current) / 1000; // in seconds
+
+      const deltaTime = (currentTime - lastTimeRef.current) / 1000;
       lastTimeRef.current = currentTime;
 
       if (!isBoosting) {
         setRocketY((prev) => {
           const newY = prev + (100 / DESCENT_DURATION) * deltaTime;
           if (newY >= 100) {
-            // Rocket crashed
             setFuel(0);
             setGameState("ended");
             return 100;
@@ -91,21 +509,12 @@ const RocketGame = () => {
     };
   }, [gameState, isBoosting]);
 
-  useEffect(() => {
-    if (questions.length > 0 && currentQuestionIndex < questions.length) {
-      const currentWord = questions[currentQuestionIndex];
-      const correctSynonym = currentWord.synonyms[Math.floor(Math.random() * currentWord.synonyms.length)];
-      const newOptions = getRandomSynonyms(correctSynonym, currentWord.synonyms, 4);
-      setOptions(newOptions);
-    }
-  }, [currentQuestionIndex, questions]);
-
   const handleAnswer = (answer: string) => {
     if (selectedAnswer) return;
 
-    const currentWord = questions[currentQuestionIndex];
-    const correct = currentWord.synonyms.includes(answer);
-    
+    const currentQuestion = questions[currentQuestionIndex];
+    const correct = answer === currentQuestion.correctSynonym;
+
     setSelectedAnswer(answer);
     setIsCorrect(correct);
 
@@ -113,17 +522,21 @@ const RocketGame = () => {
       setFuel((prev) => Math.min(prev + FUEL_GAIN, 100));
       setScore((prev) => prev + 100 + streak * 10);
       setStreak((prev) => prev + 1);
-      
+
       // Boost rocket up
       setIsBoosting(true);
       setRocketY((prev) => Math.max(prev - BOOST_AMOUNT, 0));
-      
+
       setTimeout(() => {
         setIsBoosting(false);
       }, 500);
     } else {
       setFuel((prev) => prev - FUEL_LOSS);
       setStreak(0);
+
+      // Screen shake on wrong answer
+      setScreenShake(true);
+      setTimeout(() => setScreenShake(false), 300);
     }
 
     setTimeout(() => {
@@ -139,10 +552,14 @@ const RocketGame = () => {
     }, 1200);
   };
 
-  const currentWord = questions[currentQuestionIndex];
+  const currentQuestion = questions[currentQuestionIndex];
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <motion.div
+      className="max-w-2xl mx-auto"
+      animate={screenShake ? { x: [0, -5, 5, -5, 5, 0] } : {}}
+      transition={{ duration: 0.3 }}
+    >
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Button
@@ -160,6 +577,7 @@ const RocketGame = () => {
       </div>
 
       <AnimatePresence mode="wait">
+        {/* Ready State */}
         {gameState === "ready" && (
           <motion.div
             key="ready"
@@ -173,7 +591,7 @@ const RocketGame = () => {
               transition={{ repeat: Infinity, duration: 2 }}
               className="inline-flex p-6 rounded-3xl bg-gradient-to-br from-primary to-neon-pink mb-6 neon-glow"
             >
-              <Rocket className="w-16 h-16 text-primary-foreground -rotate-45" />
+              <RocketShip isCorrect={null} isBoosting={false} fuel={100} />
             </motion.div>
             <h2 className="font-display text-2xl font-bold mb-4">Ready for Launch?</h2>
             <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
@@ -188,76 +606,69 @@ const RocketGame = () => {
           </motion.div>
         )}
 
-        {gameState === "playing" && currentWord && (
+        {/* Loading State */}
+        {gameState === "loading" && (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="glass-card rounded-3xl p-8 text-center"
+          >
+            <Loader2 className="w-16 h-16 mx-auto mb-4 text-primary animate-spin" />
+            <h2 className="font-display text-xl font-bold mb-2">Loading Questions...</h2>
+            <p className="text-muted-foreground">Preparing your mission</p>
+          </motion.div>
+        )}
+
+        {/* Playing State */}
+        {gameState === "playing" && currentQuestion && (
           <motion.div
             key="playing"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="space-y-6"
+            className="space-y-3"
           >
             {/* Stats Bar */}
-            <div className="flex items-center gap-4 mb-6">
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">Fuel</span>
-                  <span className="text-sm font-medium">{fuel}%</span>
-                </div>
-                <div className="h-3 bg-secondary rounded-full overflow-hidden">
+            <div className="flex items-center justify-between gap-4">
+              <FuelGauge fuel={fuel} />
+
+              <div className="flex flex-col items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {currentQuestionIndex + 1} / {TOTAL_QUESTIONS}
+                </span>
+                <div className="w-32 h-2 bg-secondary rounded-full overflow-hidden">
                   <motion.div
-                    className={cn(
-                      "h-full rounded-full",
-                      fuel > 50 ? "bg-neon-green" : fuel > 25 ? "bg-neon-orange" : "bg-destructive"
-                    )}
-                    animate={{ width: `${fuel}%` }}
-                    transition={{ type: "spring", damping: 15 }}
+                    className="h-full bg-gradient-to-r from-primary to-neon-pink rounded-full"
+                    animate={{ width: `${((currentQuestionIndex + 1) / TOTAL_QUESTIONS) * 100}%` }}
                   />
                 </div>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/20 border border-primary/30">
-                <Star className="w-4 h-4 text-primary" />
-                <span className="font-display font-bold">{score}</span>
+
+              <div className="flex flex-col items-center gap-1 px-4 py-3 rounded-xl bg-primary/20 border border-primary/30">
+                <Star className="w-5 h-5 text-primary" />
+                <span className="font-display font-bold text-lg">{score}</span>
               </div>
             </div>
 
-            {/* Progress */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                {currentQuestionIndex + 1} / {TOTAL_QUESTIONS}
-              </span>
-              <Progress value={((currentQuestionIndex + 1) / TOTAL_QUESTIONS) * 100} className="flex-1 h-2" />
-            </div>
+            {/* Mock data indicator */}
+            {usingMockData && (
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <AlertCircle className="w-4 h-4" />
+                <span>Using practice mode (API unavailable)</span>
+              </div>
+            )}
 
             {/* Rocket Animation Area */}
-            <div className="relative h-64 rounded-2xl overflow-hidden bg-gradient-to-b from-background/50 via-primary/5 to-background/80 border border-border/30">
-              {/* Stars background */}
-              <div className="absolute inset-0 overflow-hidden">
-                {[...Array(30)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="absolute w-1 h-1 bg-white/60 rounded-full"
-                    style={{
-                      left: `${Math.random() * 100}%`,
-                      top: `${Math.random() * 100}%`,
-                    }}
-                    animate={{
-                      opacity: [0.3, 1, 0.3],
-                      scale: [0.8, 1.2, 0.8],
-                    }}
-                    transition={{
-                      duration: 1 + Math.random() * 2,
-                      repeat: Infinity,
-                      delay: Math.random() * 2,
-                    }}
-                  />
-                ))}
-              </div>
+            <div className="relative h-48 rounded-2xl overflow-hidden border border-border/30">
+              <SpaceBackground />
 
               {/* Flying Rocket */}
               <motion.div
                 className="absolute left-1/2 -translate-x-1/2"
                 animate={{
-                  top: `${rocketY}%`,
+                  top: `${Math.min(rocketY, 80)}%`,
                   x: isBoosting ? [0, 0] : [0, 3, -3, 2, -2, 0],
                 }}
                 transition={{
@@ -266,93 +677,26 @@ const RocketGame = () => {
                 }}
               >
                 <motion.div
-                  className={cn(
-                    "relative p-4 rounded-2xl transition-all duration-300",
-                    isCorrect === true && "shadow-[0_0_60px_hsl(150_100%_50%/0.6)]",
-                    isCorrect === false && "shadow-[0_0_60px_hsl(0_84%_60%/0.6)]",
-                    isBoosting && "shadow-[0_0_80px_hsl(270_100%_65%/0.8)]"
-                  )}
                   animate={{
                     scale: isBoosting ? [1, 1.1, 1] : 1,
                   }}
                   transition={{ duration: 0.3 }}
                 >
-                  {/* Rocket Body */}
-                  <div className="relative">
-                    <Rocket
-                      className={cn(
-                        "w-16 h-16 transition-colors duration-300",
-                        isCorrect === true && "text-neon-green",
-                        isCorrect === false && "text-destructive",
-                        isCorrect === null && "text-primary"
-                      )}
-                    />
-                    
-                    {/* Exhaust Flames - more dramatic */}
-                    {fuel > 0 && (
-                      <div className="absolute -bottom-8 left-1/2 -translate-x-1/2">
-                        <motion.div
-                          animate={{
-                            scaleY: isBoosting ? [1.5, 2, 1.5] : [0.8, 1.2, 0.8],
-                            opacity: isBoosting ? [0.9, 1, 0.9] : [0.6, 0.9, 0.6],
-                          }}
-                          transition={{
-                            duration: isBoosting ? 0.15 : 0.2,
-                            repeat: Infinity,
-                          }}
-                          className="flex flex-col items-center origin-top"
-                        >
-                          <div className={cn(
-                            "w-6 rounded-full blur-sm",
-                            isBoosting ? "h-16 bg-gradient-to-b from-neon-cyan via-primary to-neon-pink" : "h-10 bg-gradient-to-b from-neon-orange via-neon-pink to-transparent"
-                          )} />
-                          <motion.div
-                            animate={{ opacity: [0.5, 1, 0.5] }}
-                            transition={{ duration: 0.1, repeat: Infinity }}
-                            className={cn(
-                              "w-4 rounded-full blur-md -mt-4",
-                              isBoosting ? "h-12 bg-neon-cyan/60" : "h-6 bg-neon-orange/50"
-                            )}
-                          />
-                        </motion.div>
-                        
-                        {/* Particle effects when boosting */}
-                        {isBoosting && (
-                          <>
-                            {[...Array(6)].map((_, i) => (
-                              <motion.div
-                                key={i}
-                                className="absolute w-2 h-2 rounded-full bg-neon-cyan"
-                                initial={{ y: 0, x: 0, opacity: 1 }}
-                                animate={{
-                                  y: [0, 30 + Math.random() * 20],
-                                  x: [(Math.random() - 0.5) * 30, (Math.random() - 0.5) * 50],
-                                  opacity: [1, 0],
-                                  scale: [1, 0.3],
-                                }}
-                                transition={{
-                                  duration: 0.5,
-                                  delay: i * 0.05,
-                                  repeat: Infinity,
-                                }}
-                              />
-                            ))}
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <RocketShip isCorrect={isCorrect} isBoosting={isBoosting} fuel={fuel} />
                 </motion.div>
               </motion.div>
 
               {/* Ground indicator */}
-              <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-t from-destructive/50 to-transparent" />
-              
+              <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-destructive/60 via-destructive/30 to-transparent" />
+
               {/* Altitude indicator */}
-              <div className="absolute right-2 top-2 bottom-2 w-1 bg-border/30 rounded-full">
+              <div className="absolute right-3 top-3 bottom-3 w-1.5 bg-border/30 rounded-full">
                 <motion.div
-                  className="absolute top-0 w-full bg-primary rounded-full"
-                  style={{ height: `${100 - rocketY}%` }}
+                  className="absolute bottom-0 w-full bg-gradient-to-t from-primary to-neon-cyan rounded-full"
+                  animate={{ height: `${100 - rocketY}%` }}
+                  style={{
+                    boxShadow: "0 0 10px hsl(270 100% 65% / 0.5)"
+                  }}
                 />
               </div>
             </div>
@@ -362,18 +706,18 @@ const RocketGame = () => {
               key={currentQuestionIndex}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="glass-card rounded-2xl p-6 text-center"
+              className="glass-card rounded-2xl p-4 text-center"
             >
               <p className="text-sm text-muted-foreground mb-2">Find a synonym for:</p>
-              <h2 className="font-display text-3xl font-bold neon-text mb-2">{currentWord.word}</h2>
-              <p className="text-sm text-muted-foreground italic">"{currentWord.meaning}"</p>
+              <h2 className="font-display text-3xl font-bold neon-text mb-2">{currentQuestion.word}</h2>
+              <p className="text-sm text-muted-foreground italic">"{currentQuestion.meaning}"</p>
             </motion.div>
 
             {/* Options */}
-            <div className="grid grid-cols-2 gap-3">
-              {options.map((option, i) => {
+            <div className="grid grid-cols-2 gap-2">
+              {currentQuestion.options.map((option, i) => {
                 const isSelected = selectedAnswer === option;
-                const isCorrectOption = currentWord.synonyms.includes(option);
+                const isCorrectOption = option === currentQuestion.correctSynonym;
                 const showResult = selectedAnswer !== null;
 
                 return (
@@ -382,16 +726,16 @@ const RocketGame = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1 }}
-                    whileHover={!selectedAnswer ? { scale: 1.02 } : {}}
+                    whileHover={!selectedAnswer ? { scale: 1.02, boxShadow: "0 0 20px hsl(270 100% 65% / 0.3)" } : {}}
                     whileTap={!selectedAnswer ? { scale: 0.98 } : {}}
                     onClick={() => handleAnswer(option)}
                     disabled={!!selectedAnswer}
                     className={cn(
-                      "p-4 rounded-xl font-medium text-left transition-all duration-300",
-                      "border backdrop-blur-sm",
+                      "p-3 rounded-xl font-medium text-left transition-all duration-300",
+                      "border-2 backdrop-blur-sm",
                       !showResult && "bg-secondary/50 border-border/50 hover:border-primary/50 hover:bg-primary/10",
-                      showResult && isCorrectOption && "bg-neon-green/20 border-neon-green/50 text-neon-green",
-                      showResult && isSelected && !isCorrectOption && "bg-destructive/20 border-destructive/50 text-destructive"
+                      showResult && isCorrectOption && "bg-neon-green/20 border-neon-green text-neon-green shadow-[0_0_20px_hsl(150_100%_50%/0.3)]",
+                      showResult && isSelected && !isCorrectOption && "bg-destructive/20 border-destructive text-destructive shadow-[0_0_20px_hsl(0_84%_60%/0.3)]"
                     )}
                   >
                     {option}
@@ -415,6 +759,7 @@ const RocketGame = () => {
           </motion.div>
         )}
 
+        {/* Ended State */}
         {gameState === "ended" && (
           <motion.div
             key="ended"
@@ -437,6 +782,13 @@ const RocketGame = () => {
             <p className="text-muted-foreground mb-6">
               You scored {score} points and answered {currentQuestionIndex + (fuel > 0 ? 1 : 0)} questions
             </p>
+
+            {usingMockData && (
+              <p className="text-sm text-muted-foreground mb-4">
+                (Practice mode - questions from local data)
+              </p>
+            )}
+
             <div className="flex items-center justify-center gap-4 mb-8">
               <div className="px-6 py-4 rounded-xl bg-primary/20 border border-primary/30">
                 <p className="text-2xl font-display font-bold text-primary">{score}</p>
@@ -459,15 +811,16 @@ const RocketGame = () => {
               </Button>
               <Button
                 onClick={initGame}
-                className="bg-gradient-to-r from-primary to-neon-pink hover:opacity-90 rounded-xl font-display"
+                className="bg-gradient-to-r from-primary to-neon-pink hover:opacity-90 rounded-xl font-display gap-2"
               >
+                <RefreshCw className="w-4 h-4" />
                 Play Again
               </Button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 };
 

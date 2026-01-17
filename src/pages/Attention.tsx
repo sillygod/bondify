@@ -20,6 +20,7 @@ import {
   shuffleArray,
 } from "@/data/attentionData";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
+import { useGameProgress } from "@/hooks/useGameProgress";
 
 type GameState = "ready" | "playing" | "paused" | "ended";
 
@@ -61,6 +62,7 @@ const Attention = () => {
     }
     return () => setHideHeader(false);
   }, [gameState, setHideHeader]);
+
   const [article, setArticle] = useState<AttentionArticle | null>(null);
   const [mainBubbles, setMainBubbles] = useState<MergedBubble[]>([]);
   const [pendingBubbles, setPendingBubbles] = useState<RelatedBubble[]>([]);
@@ -75,6 +77,12 @@ const Attention = () => {
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
+  const { resetProgress } = useGameProgress({
+    gameState,
+    score,
+    wordsLearned: totalMatched,
+  });
+
   const initGame = useCallback(() => {
     const selectedArticle = getRandomArticle();
     setArticle(selectedArticle);
@@ -86,8 +94,9 @@ const Attention = () => {
     setScore(0);
     setTotalMatched(0);
     setFeedback(null);
+    resetProgress();
     setGameState("ready");
-  }, []);
+  }, [resetProgress]);
 
   useEffect(() => {
     initGame();
@@ -350,15 +359,13 @@ const Attention = () => {
               {mainBubbles.map((bubble) => (
                 <motion.div
                   key={bubble.id}
-                  className={`relative p-4 md:p-6 rounded-2xl ${colorClasses[bubble.color].bg} ${colorClasses[bubble.color].border} border-2 min-h-[150px] md:min-h-[200px] transition-all duration-300 ${
-                    draggedOver === bubble.id ? colorClasses[bubble.color].glow : ""
-                  } ${
-                    feedback?.targetId === bubble.id
+                  className={`relative p-4 md:p-6 rounded-2xl ${colorClasses[bubble.color].bg} ${colorClasses[bubble.color].border} border-2 min-h-[150px] md:min-h-[200px] transition-all duration-300 ${draggedOver === bubble.id ? colorClasses[bubble.color].glow : ""
+                    } ${feedback?.targetId === bubble.id
                       ? feedback.type === "correct"
                         ? "ring-4 ring-neon-green"
                         : "ring-4 ring-destructive animate-[shake_0.5s_ease-in-out]"
                       : ""
-                  }`}
+                    }`}
                   onDragOver={(e) => handleDragOver(e, bubble.id)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, bubble)}

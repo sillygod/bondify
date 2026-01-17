@@ -68,13 +68,31 @@ CONVERSATION_FEEDBACK_PROMPT = """Analyze this English conversation and provide 
 
 {conversation}
 
-Provide a helpful summary including:
-1. What went well in the conversation
-2. Grammar mistakes made (if any) with corrections
-3. Tips for more natural speaking
-4. Encouragement for the learner
+Target words the user was practicing: {target_words}
 
-Keep the feedback constructive and encouraging. Format as plain text, not markdown."""
+Provide a helpful summary including:
+
+## Session Summary
+- Brief overview of how the conversation went
+
+## Grammar & Language
+- Any grammar mistakes with corrections (if any)
+- Tips for more natural speaking
+
+## Vocabulary Usage
+- How well the user used the target vocabulary (if any were provided)
+- Highlight any good vocabulary the user demonstrated
+
+## Recommended Words to Learn
+Based on the conversation topic and areas where the user could improve, suggest 3-5 useful vocabulary words they should add to their word list. For each word:
+- The word itself
+- Brief definition
+- An example of how it could be used in this conversation context
+
+## Encouragement
+- Positive feedback and motivation to continue practicing
+
+Format in markdown. Be constructive and encouraging."""
 
 CONVERSATION_OPENING_PROMPT = """Generate a friendly opening message to start an English conversation practice session.
 
@@ -84,6 +102,39 @@ The message should:
 3. Ask an open-ended question to get started
 
 Keep it brief (2-3 sentences). Return ONLY the opening message."""
+
+CONVERSATION_OPENING_WITH_TOPIC_PROMPT = """Generate a friendly opening message to start an English conversation practice session.
+
+Topic: {topic}
+Vocabulary words to practice: {target_words}
+
+The message should:
+1. Be warm and welcoming
+2. Introduce the topic naturally
+3. Ask an open-ended question related to the topic
+4. If vocabulary words are provided, try to naturally use ONE of them in your opening
+
+Keep it brief (2-3 sentences). Return ONLY the opening message."""
+
+CONVERSATION_REPLY_WITH_WORDS_PROMPT = """You are having an English conversation with a learner.
+
+Conversation history:
+{history}
+
+User's latest message: {message}
+
+{correction_context}
+
+Target vocabulary words the user is practicing: {target_words}
+
+Generate a natural, friendly reply that:
+1. Responds to what the user said
+2. Keeps the conversation flowing
+3. Is appropriate for their level
+4. If natural, incorporate or reference one of the target vocabulary words
+5. Occasionally encourage the user to use the target words in their responses
+
+Reply naturally as a conversation partner. Keep it concise (1-3 sentences)."""
 
 # =============================================================================
 # Vocabulary Agent Prompts

@@ -13,7 +13,9 @@ from app.llm.prompts import (
     CONVERSATION_FEEDBACK_PROMPT,
     CONVERSATION_FOLLOWUP_PROMPT,
     CONVERSATION_OPENING_PROMPT,
+    CONVERSATION_OPENING_WITH_TOPIC_PROMPT,
     CONVERSATION_REPLY_PROMPT,
+    CONVERSATION_REPLY_WITH_WORDS_PROMPT,
     CONVERSATION_SYSTEM_PROMPT,
     GRAMMAR_CHECK_PROMPT,
 )
@@ -108,6 +110,7 @@ class ConversationAgent:
         user_message = state.get("user_message", "")
         messages = state.get("messages", [])
         correction = state.get("correction")
+        target_words = state.get("target_words", [])
 
         history = self._format_history(messages)
 
@@ -119,11 +122,20 @@ class ConversationAgent:
                 f"You may gently acknowledge this in your reply if appropriate."
             )
 
-        prompt = CONVERSATION_REPLY_PROMPT.format(
-            history=history,
-            message=user_message,
-            correction_context=correction_context,
-        )
+        # Use word-focused prompt if target words exist
+        if target_words:
+            prompt = CONVERSATION_REPLY_WITH_WORDS_PROMPT.format(
+                history=history,
+                message=user_message,
+                correction_context=correction_context,
+                target_words=", ".join(target_words),
+            )
+        else:
+            prompt = CONVERSATION_REPLY_PROMPT.format(
+                history=history,
+                message=user_message,
+                correction_context=correction_context,
+            )
 
         try:
             response = await self.llm.ainvoke([
@@ -161,6 +173,7 @@ class ConversationAgent:
         self,
         user_message: str,
         conversation_history: list[dict],
+        target_words: Optional[list[str]] = None,
     ) -> dict:
         """
         Process user message and return response.
@@ -168,6 +181,7 @@ class ConversationAgent:
         Args:
             user_message: The user's message
             conversation_history: List of previous messages
+            target_words: Optional vocabulary words to incorporate
 
         Returns:
             Dict with reply, followUp, and optional correction
@@ -178,6 +192,7 @@ class ConversationAgent:
             "assistant_reply": "",
             "follow_up": "",
             "correction": None,
+            "target_words": target_words or [],
         }
 
         try:
@@ -196,23 +211,36 @@ class ConversationAgent:
         except Exception as e:
             raise LLMServiceError(f"Conversation processing failed: {str(e)}")
 
-    async def generate_opening(self) -> str:
+    async def generate_opening(
+        self, topic: Optional[str] = None, target_words: Optional[list[str]] = None
+    ) -> str:
         """Generate opening message for new conversation."""
         try:
+            if topic or target_words:
+                prompt = CONVERSATION_OPENING_WITH_TOPIC_PROMPT.format(
+                    topic=topic or "general conversation",
+                    target_words=", ".join(target_words) if target_words else "none",
+                )
+            else:
+                prompt = CONVERSATION_OPENING_PROMPT
+                
             response = await self.llm.ainvoke([
                 SystemMessage(content=CONVERSATION_SYSTEM_PROMPT),
-                HumanMessage(content=CONVERSATION_OPENING_PROMPT),
+                HumanMessage(content=prompt),
             ])
             return response.content.strip()
         except Exception as e:
             raise LLMServiceError(f"Failed to generate opening: {str(e)}")
 
-    async def generate_feedback(self, messages: list[dict]) -> str:
+    async def generate_feedback(
+        self, messages: list[dict], target_words: Optional[list[str]] = None
+    ) -> str:
         """
         Generate conversation feedback summary.
 
         Args:
             messages: List of conversation messages
+            target_words: Optional list of words user was practicing
 
         Returns:
             Feedback summary string
@@ -221,7 +249,10 @@ class ConversationAgent:
             return "No conversation to analyze."
 
         conversation = self._format_history(messages)
-        prompt = CONVERSATION_FEEDBACK_PROMPT.format(conversation=conversation)
+        prompt = CONVERSATION_FEEDBACK_PROMPT.format(
+            conversation=conversation,
+            target_words=", ".join(target_words) if target_words else "none specified",
+        )
 
         try:
             response = await self.llm.ainvoke([
@@ -234,25 +265,42 @@ class ConversationAgent:
 
 
 # Session storage for conversation history (in-memory for now)
-_conversation_sessions: dict[str, list[dict]] = {}
+# Each session stores: {"messages": [...], "topic": str, "target_words": [...]}
+_conversation_sessions: dict[str, dict] = {}
 
 
 def get_session(session_id: str) -> list[dict]:
     """Get conversation history for a session."""
-    return _conversation_sessions.get(session_id, [])
+    session = _conversation_sessions.get(session_id, {})
+    return session.get("messages", [])
 
 
-def create_session() -> str:
-    """Create a new conversation session."""
+def get_session_context(session_id: str) -> dict:
+    """Get session context including topic and target words."""
+    session = _conversation_sessions.get(session_id, {})
+    return {
+        "topic": session.get("topic"),
+        "target_words": session.get("target_words", []),
+    }
+
+
+def create_session(
+    topic: Optional[str] = None, target_words: Optional[list[str]] = None
+) -> str:
+    """Create a new conversation session with optional context."""
     session_id = str(uuid.uuid4())
-    _conversation_sessions[session_id] = []
+    _conversation_sessions[session_id] = {
+        "messages": [],
+        "topic": topic,
+        "target_words": target_words or [],
+    }
     return session_id
 
 
 def add_message(session_id: str, role: str, content: str, correction: Optional[dict] = None):
     """Add a message to a session."""
     if session_id not in _conversation_sessions:
-        _conversation_sessions[session_id] = []
+        _conversation_sessions[session_id] = {"messages": [], "topic": None, "target_words": []}
 
     message = {
         "id": str(uuid.uuid4()),
@@ -262,10 +310,11 @@ def add_message(session_id: str, role: str, content: str, correction: Optional[d
     if correction:
         message["correction"] = correction
 
-    _conversation_sessions[session_id].append(message)
+    _conversation_sessions[session_id]["messages"].append(message)
 
 
 def clear_session(session_id: str):
     """Clear a conversation session."""
     if session_id in _conversation_sessions:
         del _conversation_sessions[session_id]
+

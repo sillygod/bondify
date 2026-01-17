@@ -1,14 +1,21 @@
 """Conversation API endpoints."""
 
-from fastapi import APIRouter, HTTPException, status
+from typing import Optional
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_current_user_optional
+from app.database import get_db
 from app.llm.conversation_agent import (
     ConversationAgent,
     add_message,
     create_session,
     get_session,
+    get_session_context,
 )
 from app.llm.factory import LLMServiceError
+from app.models.user import User
 from app.schemas.conversation import (
     ConversationFeedbackRequest,
     ConversationFeedbackResponse,
@@ -17,6 +24,7 @@ from app.schemas.conversation import (
     ConversationStartRequest,
     ConversationStartResponse,
 )
+from app.services.wordlist_service import WordlistService
 
 router = APIRouter(prefix="/api/conversation", tags=["conversation"])
 
@@ -33,16 +41,38 @@ def get_agent() -> ConversationAgent:
 
 
 @router.post("/start", response_model=ConversationStartResponse)
-async def start_conversation(request: ConversationStartRequest = None):
+async def start_conversation(
+    request: ConversationStartRequest = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
     """
     Start a new conversation session.
 
     Returns a session ID and an opening message from the assistant.
+    Optionally accepts a topic and target vocabulary words to practice.
+    If user is authenticated, words may be auto-selected from their word list.
     """
     try:
         agent = get_agent()
-        session_id = create_session()
-        opening_message = await agent.generate_opening()
+        
+        # Extract topic and target_words from request
+        topic = request.topic if request else None
+        target_words = request.target_words if request else None
+        
+        # If user is authenticated and no words provided, auto-select from their wordlist
+        if current_user and not target_words:
+            wordlist_service = WordlistService(db)
+            random_words = await wordlist_service.get_random_words(
+                user_id=current_user.id,
+                count=3,
+                max_mastery=70,  # Focus on words not yet mastered
+            )
+            if random_words:
+                target_words = [w["word"] for w in random_words]
+        
+        session_id = create_session(topic=topic, target_words=target_words)
+        opening_message = await agent.generate_opening(topic=topic, target_words=target_words)
 
         # Add opening message to session history
         add_message(session_id, "assistant", opening_message)
@@ -50,6 +80,8 @@ async def start_conversation(request: ConversationStartRequest = None):
         return ConversationStartResponse(
             session_id=session_id,
             opening_message=opening_message,
+            topic=topic,
+            target_words=target_words,
         )
 
     except LLMServiceError as e:
@@ -87,11 +119,15 @@ async def send_message(request: ConversationMessageRequest):
         if not session_id:
             session_id = create_session()
 
-        # Get conversation history
+        # Get conversation history and context
         history = get_session(session_id)
+        context = get_session_context(session_id)
+        target_words = context.get("target_words", [])
 
-        # Process message
-        result = await agent.process_message(request.message, history)
+        # Process message with target_words in state
+        result = await agent.process_message(
+            request.message, history, target_words=target_words
+        )
 
         # Add user message to history
         add_message(
@@ -143,8 +179,10 @@ async def get_feedback(request: ConversationFeedbackRequest):
     Analyzes the conversation and provides improvement suggestions.
     """
     try:
-        # Get conversation history first (before creating agent)
+        # Get conversation history and context first (before creating agent)
         history = get_session(request.session_id)
+        context = get_session_context(request.session_id)
+        target_words = context.get("target_words", [])
 
         if not history:
             raise HTTPException(
@@ -158,8 +196,8 @@ async def get_feedback(request: ConversationFeedbackRequest):
 
         agent = get_agent()
 
-        # Generate feedback
-        feedback = await agent.generate_feedback(history)
+        # Generate feedback with target words context
+        feedback = await agent.generate_feedback(history, target_words=target_words)
 
         return ConversationFeedbackResponse(
             feedback=feedback,

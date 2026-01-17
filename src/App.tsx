@@ -29,6 +29,9 @@ import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
+// Admin imports
+import { AdminLayout, AdminDashboard, QuestionManager, GenerateQuestions } from "./admin";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -39,6 +42,15 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<Auth />} />
+
+          {/* Admin Routes */}
+          <Route element={<AdminLayout />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/questions" element={<QuestionManager />} />
+            <Route path="/admin/generate" element={<GenerateQuestions />} />
+          </Route>
+
+          {/* Main App Routes */}
           <Route element={<MainLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/rocket-game" element={<RocketGame />} />
@@ -71,3 +83,4 @@ const App = () => (
 );
 
 export default App;
+
