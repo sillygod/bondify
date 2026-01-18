@@ -24,11 +24,11 @@ services:
       - ACCESS_TOKEN_EXPIRE_MINUTES=30
       - REFRESH_TOKEN_EXPIRE_DAYS=7
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
       interval: 5s
-      timeout: 10s
+      timeout: 3s
       retries: 3
-      start_period: 5s
+      start_period: 2s
     restart: unless-stopped
 
   # Frontend Development Server

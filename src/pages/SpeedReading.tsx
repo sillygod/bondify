@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { getRandomArticle, Article } from "@/data/speedReadingData";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
+import { useSpeedReadingArticle, SpeedReadingArticle } from "@/hooks/useGameQuestions";
 
 type GameState = "ready" | "countdown" | "playing" | "paused" | "question" | "result" | "ended";
 
@@ -29,7 +30,7 @@ const SpeedReading = () => {
   const { setHideHeader } = useLayoutControl();
   const [gameState, setGameState] = useState<GameState>("ready");
   const [wpm, setWpm] = useState(400);
-  const [article, setArticle] = useState<Article | null>(null);
+  const [article, setArticle] = useState<Article | SpeedReadingArticle | null>(null);
   const [currentRound, setCurrentRound] = useState(0);
   const [words, setWords] = useState<string[]>([]);
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
@@ -83,8 +84,26 @@ const SpeedReading = () => {
     };
   }, [gameState]);
 
-  const startGame = useCallback(() => {
-    const newArticle = getRandomArticle();
+  const { refetch: fetchApiArticle } = useSpeedReadingArticle();
+
+  const startGame = useCallback(async () => {
+    // Try API first, fallback to mock data
+    let newArticle: Article | SpeedReadingArticle | null = null;
+
+    try {
+      const result = await fetchApiArticle();
+      if (result.data) {
+        newArticle = result.data;
+      }
+    } catch {
+      // API failed, will use mock
+    }
+
+    // Fallback to mock data
+    if (!newArticle) {
+      newArticle = getRandomArticle();
+    }
+
     setArticle(newArticle);
     setCurrentRound(0);
     setScore(0);
@@ -97,7 +116,7 @@ const SpeedReading = () => {
     setWords(paragraphWords);
     setCurrentWordIndex(0);
     setGameState("countdown");
-  }, [resetProgress]);
+  }, [resetProgress, fetchApiArticle]);
 
   const startRound = useCallback((roundIndex: number) => {
     if (!article) return;

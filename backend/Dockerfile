@@ -1,26 +1,41 @@
+# syntax=docker/dockerfile:1
+
 # Backend Dockerfile for English Learning API
+# Uses Python 3.11 with uv for dependency management
+
+FROM python:3.11-slim AS builder
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies using uv (no dev dependencies)
+RUN uv sync --frozen --no-dev --no-install-project
+
+# Production stage
 FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
 
-# Install system dependencies and uv
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && curl -LsSf https://astral.sh/uv/install.sh | sh
+# Copy virtual environment from builder
+COPY --from=builder /app/.venv /app/.venv
 
-# Add uv to PATH
-ENV PATH="/root/.local/bin:$PATH"
-
-# Copy project files
-COPY pyproject.toml .
-COPY uv.lock* .
-
-# Install dependencies with uv
-RUN uv sync --frozen --no-dev
+# Copy alembic configuration
+COPY alembic.ini ./
+COPY alembic/ ./alembic/
 
 # Copy application code
-COPY . .
+COPY app/ ./app/
 
 # Create data directory for SQLite
 RUN mkdir -p /app/data
@@ -28,5 +43,9 @@ RUN mkdir -p /app/data
 # Expose port
 EXPOSE 8000
 
-# Run the application with hot reload for development
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)" || exit 1
+
+# Run uvicorn
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

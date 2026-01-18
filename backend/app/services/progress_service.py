@@ -148,7 +148,7 @@ class ProgressService:
                 xp = progress.xp_earned
                 has_activity = True
                 # Calculate intensity (0-4) based on XP
-                intensity = min(4, xp // 25) if xp > 0 else 0
+                intensity = min(4, xp // 10) if xp > 0 else 1  # At least intensity 1 if has activity
             else:
                 xp = 0
                 has_activity = False

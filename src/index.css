@@ -61,10 +61,16 @@
     @apply border-border;
   }
 
+  html {
+    background: hsl(260 30% 6%);
+    overscroll-behavior: none;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     background: var(--gradient-hero);
     min-height: 100vh;
+    overscroll-behavior: none;
   }
 }
 

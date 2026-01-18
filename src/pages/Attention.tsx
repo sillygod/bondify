@@ -10,17 +10,19 @@ import {
   CheckCircle2,
   XCircle,
   Volume2,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AttentionArticle,
   MainBubble,
   RelatedBubble,
-  getRandomArticle,
+  attentionArticles,
   shuffleArray,
 } from "@/data/attentionData";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
+import { useAttentionArticle, AttentionAPIArticle } from "@/hooks/useGameQuestions";
 
 type GameState = "ready" | "playing" | "paused" | "ended";
 
@@ -52,7 +54,12 @@ const colorClasses = {
 const Attention = () => {
   const navigate = useNavigate();
   const [gameState, setGameState] = useState<GameState>("ready");
+  const [isLoading, setIsLoading] = useState(true);
+  const [usingMockData, setUsingMockData] = useState(false);
   const { setHideHeader } = useLayoutControl();
+
+  // TanStack Query hook
+  const { refetch: fetchArticle } = useAttentionArticle();
 
   useEffect(() => {
     if (gameState === "playing" || gameState === "paused") {
@@ -83,20 +90,48 @@ const Attention = () => {
     wordsLearned: totalMatched,
   });
 
-  const initGame = useCallback(() => {
-    const selectedArticle = getRandomArticle();
-    setArticle(selectedArticle);
-    setMainBubbles(
-      selectedArticle.mainBubbles.map((b) => ({ ...b, mergedItems: [] }))
-    );
-    setPendingBubbles(shuffleArray([...selectedArticle.relatedBubbles]));
+  const initGame = useCallback(async () => {
+    setIsLoading(true);
+    setUsingMockData(false);
+
+    try {
+      const result = await fetchArticle();
+      const apiArticle = result.data;
+
+      if (apiArticle) {
+        // Transform API article to match frontend interface
+        const transformed: AttentionArticle = {
+          id: String(apiArticle.id ?? 'api-1'),
+          title: apiArticle.title,
+          audioText: apiArticle.audioText,
+          mainBubbles: apiArticle.mainBubbles,
+          relatedBubbles: apiArticle.relatedBubbles,
+        };
+        setArticle(transformed);
+        setMainBubbles(transformed.mainBubbles.map((b) => ({ ...b, mergedItems: [] })));
+        setPendingBubbles(shuffleArray([...transformed.relatedBubbles]));
+      } else {
+        throw new Error("No article available");
+      }
+    } catch (error) {
+      console.warn("API unavailable, using mock data:", error);
+      setUsingMockData(true);
+      // Fallback to mock data
+      const randomIndex = Math.floor(Math.random() * attentionArticles.length);
+      const selectedArticle = attentionArticles[randomIndex];
+      setArticle(selectedArticle);
+      setMainBubbles(selectedArticle.mainBubbles.map((b) => ({ ...b, mergedItems: [] })));
+      setPendingBubbles(shuffleArray([...selectedArticle.relatedBubbles]));
+    }
+
     setCurrentBubble(null);
     setScore(0);
     setTotalMatched(0);
     setFeedback(null);
     resetProgress();
     setGameState("ready");
-  }, [resetProgress]);
+    setIsLoading(false);
+  }, [resetProgress, fetchArticle]);
 
   useEffect(() => {
     initGame();
@@ -278,8 +313,22 @@ const Attention = () => {
       </div>
 
       <AnimatePresence mode="wait">
+        {/* Loading State */}
+        {isLoading && (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-col items-center justify-center min-h-[60vh] text-center"
+          >
+            <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+            <p className="text-muted-foreground">Loading article...</p>
+          </motion.div>
+        )}
+
         {/* Ready State */}
-        {gameState === "ready" && article && (
+        {!isLoading && gameState === "ready" && article && (
           <motion.div
             key="ready"
             initial={{ opacity: 0, y: 20 }}

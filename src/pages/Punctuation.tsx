@@ -1,16 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, X, Trophy, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, X, Trophy, RotateCcw, Sparkles, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
   PunctuationQuestion,
-  getRandomPunctuationQuestions,
+  punctuationData,
   punctuationTypes,
 } from "@/data/punctuationData";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
+import { usePunctuationGameQuestions, PunctuationAPIQuestion } from "@/hooks/useGameQuestions";
 
 const TOTAL_QUESTIONS = 10;
 
@@ -25,13 +26,53 @@ const Punctuation = () => {
   const [score, setScore] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [usingMockData, setUsingMockData] = useState(false);
 
   const { setHideHeader } = useLayoutControl();
 
-  const loadQuestions = (type?: string) => {
-    const typeFilter = type as PunctuationQuestion["punctuationType"] | undefined;
-    const newQuestions = getRandomPunctuationQuestions(TOTAL_QUESTIONS, [], typeFilter);
-    setQuestions(newQuestions);
+  // TanStack Query hook
+  const { refetch: fetchQuestions } = usePunctuationGameQuestions(TOTAL_QUESTIONS);
+
+  const loadQuestions = useCallback(async (type?: string) => {
+    setIsLoading(true);
+    setUsingMockData(false);
+
+    try {
+      const result = await fetchQuestions();
+      const apiQuestions = result.data;
+
+      if (apiQuestions && apiQuestions.length > 0) {
+        // Transform API questions to match frontend interface
+        let transformed: PunctuationQuestion[] = apiQuestions.map((q: PunctuationAPIQuestion, index: number) => ({
+          id: String(q.id ?? index),
+          sentence: q.sentence,
+          blanks: q.blanks,
+          punctuationType: q.punctuationType,
+          explanation: q.explanation,
+        }));
+
+        // Apply type filter if specified
+        if (type) {
+          transformed = transformed.filter((q) => q.punctuationType === type);
+        }
+
+        setQuestions(transformed.slice(0, TOTAL_QUESTIONS));
+      } else {
+        throw new Error("No questions available");
+      }
+    } catch (error) {
+      console.warn("API unavailable, using mock data:", error);
+      setUsingMockData(true);
+      // Fallback to mock data
+      let available = [...punctuationData];
+      if (type) {
+        available = available.filter((q) => q.punctuationType === type);
+      }
+      const shuffled = available.sort(() => Math.random() - 0.5);
+      setQuestions(shuffled.slice(0, TOTAL_QUESTIONS));
+    }
+
     setCurrentIndex(0);
     setCurrentBlankIndex(0);
     setSelectedAnswers([]);
@@ -39,7 +80,8 @@ const Punctuation = () => {
     setIsQuestionComplete(false);
     setScore(0);
     setIsComplete(false);
-  };
+    setIsLoading(false);
+  }, [fetchQuestions]);
 
   useEffect(() => {
     loadQuestions();
@@ -61,7 +103,7 @@ const Punctuation = () => {
 
   const handleSelectOption = (index: number) => {
     if (isBlankAnswered) return;
-    
+
     const newAnswers = [...selectedAnswers, index];
     setSelectedAnswers(newAnswers);
     setIsBlankAnswered(true);
@@ -119,9 +161,9 @@ const Punctuation = () => {
   // Render sentence with blanks - show filled answers and current blank
   const renderSentence = () => {
     if (!currentQuestion) return null;
-    
+
     const parts = currentQuestion.sentence.split("___");
-    
+
     return (
       <p className="text-xl font-display leading-relaxed">
         {parts.map((part, i) => (
@@ -133,13 +175,12 @@ const Punctuation = () => {
                   <motion.span
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className={`inline-block px-2 py-0.5 mx-1 rounded font-mono ${
-                      isQuestionComplete
-                        ? selectedAnswers[i] === currentQuestion.blanks[i].correctIndex
-                          ? "bg-green-500/30 text-green-400 border border-green-500/50"
-                          : "bg-destructive/30 text-destructive border border-destructive/50"
-                        : "bg-primary/30 text-primary border border-primary/50"
-                    }`}
+                    className={`inline-block px-2 py-0.5 mx-1 rounded font-mono ${isQuestionComplete
+                      ? selectedAnswers[i] === currentQuestion.blanks[i].correctIndex
+                        ? "bg-green-500/30 text-green-400 border border-green-500/50"
+                        : "bg-destructive/30 text-destructive border border-destructive/50"
+                      : "bg-primary/30 text-primary border border-primary/50"
+                      }`}
                   >
                     {currentQuestion.blanks[i].options[selectedAnswers[i]]}
                   </motion.span>
@@ -160,10 +201,13 @@ const Punctuation = () => {
     );
   };
 
-  if (questions.length === 0) {
+  if (questions.length === 0 || isLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="text-muted-foreground">Loading questions...</div>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          Loading questions...
+        </div>
       </div>
     );
   }

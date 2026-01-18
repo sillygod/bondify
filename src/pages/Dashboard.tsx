@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   BookOpen,
   Target,
@@ -31,12 +31,14 @@ import { tokenManager } from "@/lib/api";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { stats, isLoading } = useStats();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Re-check auth state whenever location changes (e.g., after login redirect)
   useEffect(() => {
     setIsAuthenticated(tokenManager.isAuthenticated());
-  }, []);
+  }, [location.key]);
 
   const handleWordClick = (word: string) => {
     navigate(`/word-list?word=${encodeURIComponent(word)}`);

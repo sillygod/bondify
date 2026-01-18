@@ -17,6 +17,7 @@ from app.api.rephrase import router as rephrase_router
 from app.api.progress import router as progress_router
 from app.api.game_questions import router as game_questions_router
 from app.api.wordlist import router as wordlist_router
+from app.api.notifications import router as notifications_router
 
 
 @asynccontextmanager
@@ -133,4 +134,5 @@ app.include_router(rephrase_router)
 app.include_router(progress_router)
 app.include_router(game_questions_router)
 app.include_router(wordlist_router)
+app.include_router(notifications_router)
 

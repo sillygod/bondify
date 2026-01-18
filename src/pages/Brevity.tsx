@@ -1,13 +1,85 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Scissors, Trophy, RotateCcw, Check, X, Lightbulb, ArrowLeft } from "lucide-react";
+import { Scissors, Trophy, RotateCcw, Check, X, Lightbulb, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BrevitySentence, getRandomBrevitySentences } from "@/data/brevityData";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
 import { useNavigate } from "react-router-dom";
+import { useBrevityQuestions, BrevityQuestion } from "@/hooks/useGameQuestions";
 
-type GameState = "ready" | "playing" | "showingResult" | "ended";
+// Fallback mock data
+const mockBrevityData = [
+  {
+    originalSentence: "At this point in time, we are not in a position to make a decision.",
+    options: ["We cannot decide now.", "At this moment we are unable to make decisions.", "We are currently not positioned to decide."],
+    correctOption: "We cannot decide now.",
+    reason: "Removes redundant phrases like 'at this point in time' and 'in a position to' for clearer expression."
+  },
+  {
+    originalSentence: "The reason why he was late was due to the fact that there was heavy traffic.",
+    options: ["He was late because of heavy traffic.", "The reason for his lateness was heavy traffic conditions.", "Due to heavy traffic, the reason for being late was explained."],
+    correctOption: "He was late because of heavy traffic.",
+    reason: "'The reason why' and 'due to the fact that' are both wordy. Use 'because of' for clarity."
+  },
+  {
+    originalSentence: "In order to succeed in life, it is necessary to work hard.",
+    options: ["To succeed, work hard.", "For success in life, hard work is a necessity.", "In life, success requires that you work hard."],
+    correctOption: "To succeed, work hard.",
+    reason: "'In order to' can be shortened to 'To', and 'it is necessary to' is wordy."
+  },
+  {
+    originalSentence: "She is of the opinion that the project should be completed by Friday.",
+    options: ["She thinks the project should be done by Friday.", "Her opinion is that project completion should occur Friday.", "She holds the view that Friday is the deadline."],
+    correctOption: "She thinks the project should be done by Friday.",
+    reason: "'Is of the opinion that' is wordy. Simply use 'thinks' or 'believes'."
+  },
+  {
+    originalSentence: "Despite the fact that it was raining heavily, the game continued.",
+    options: ["Although it rained heavily, the game continued.", "Despite heavy rain conditions, the game went on.", "The game continued notwithstanding the heavy rainfall."],
+    correctOption: "Although it rained heavily, the game continued.",
+    reason: "'Despite the fact that' is wordy. Use 'Although' or 'Despite' + noun."
+  },
+  {
+    originalSentence: "It is important to note that all employees must attend the meeting.",
+    options: ["All employees must attend the meeting.", "Notably, meeting attendance is required for all employees.", "It should be mentioned that employee attendance is mandatory."],
+    correctOption: "All employees must attend the meeting.",
+    reason: "'It is important to note that' is filler. Get directly to the point."
+  },
+  {
+    originalSentence: "The committee has made a decision to postpone the event.",
+    options: ["The committee decided to postpone the event.", "A postponement decision was made by the committee.", "The committee's decision was to postpone."],
+    correctOption: "The committee decided to postpone the event.",
+    reason: "'Has made a decision to' is wordy. Use the verb 'decided' directly."
+  },
+  {
+    originalSentence: "There are many people who believe that climate change is urgent.",
+    options: ["Many people believe climate change is urgent.", "Belief in climate change urgency exists among many.", "People who believe in urgent climate change are many."],
+    correctOption: "Many people believe climate change is urgent.",
+    reason: "'There are...who' is an expletive construction. Start directly with the subject."
+  },
+  {
+    originalSentence: "He conducted an investigation into the matter.",
+    options: ["He investigated the matter.", "An investigation of the matter was conducted by him.", "He carried out an investigative process."],
+    correctOption: "He investigated the matter.",
+    reason: "'Conducted an investigation into' is wordy. Use the verb 'investigated'."
+  },
+  {
+    originalSentence: "Each and every person in the room applauded.",
+    options: ["Everyone in the room applauded.", "Each person in the room applauded.", "Each and every individual applauded."],
+    correctOption: "Everyone in the room applauded.",
+    reason: "'Each and every' is redundant. Use 'everyone' or 'each'."
+  }
+];
+
+type GameState = "ready" | "loading" | "playing" | "showingResult" | "ended";
+
+interface BrevitySentence {
+  id: number;
+  originalSentence: string;
+  options: string[];
+  correctOption: string;
+  reason: string;
+}
 
 const Brevity = () => {
   const navigate = useNavigate();
@@ -16,12 +88,16 @@ const Brevity = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
-  const [selectedWord, setSelectedWord] = useState<{ start: number; end: number } | null>(null);
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [usingMockData, setUsingMockData] = useState(false);
 
   const currentSentence = sentences[currentIndex];
   const totalQuestions = 10;
   const { setHideHeader } = useLayoutControl();
+
+  // TanStack Query hook
+  const { refetch: fetchQuestions } = useBrevityQuestions(totalQuestions);
 
   useEffect(() => {
     if (gameState !== "ready" && gameState !== "ended") {
@@ -38,36 +114,53 @@ const Brevity = () => {
     wordsLearned: currentIndex,
   });
 
-  const startGame = useCallback(() => {
-    const newSentences = getRandomBrevitySentences(totalQuestions);
-    setSentences(newSentences);
+  const startGame = useCallback(async () => {
+    setGameState("loading");
+    setUsingMockData(false);
+
+    try {
+      const result = await fetchQuestions();
+      const apiQuestions = result.data;
+
+      if (apiQuestions && apiQuestions.length > 0) {
+        // Use API questions directly
+        const transformedSentences: BrevitySentence[] = apiQuestions.map((q: BrevityQuestion, index: number) => ({
+          id: q.id ?? index,
+          originalSentence: q.originalSentence,
+          options: q.options,
+          correctOption: q.correctOption,
+          reason: q.reason,
+        }));
+        setSentences(transformedSentences);
+      } else {
+        throw new Error("No questions available");
+      }
+    } catch (error) {
+      console.warn("API unavailable, using mock data:", error);
+      setUsingMockData(true);
+      // Fallback to mock data
+      const shuffled = [...mockBrevityData].sort(() => Math.random() - 0.5).slice(0, totalQuestions);
+      const mockSentences: BrevitySentence[] = shuffled.map((q, index) => ({
+        id: index,
+        ...q
+      }));
+      setSentences(mockSentences);
+    }
+
     setCurrentIndex(0);
     setScore(0);
     setStreak(0);
-    setSelectedWord(null);
+    setSelectedAnswer(null);
     setIsCorrect(null);
     resetProgress();
     setGameState("playing");
-  }, [resetProgress]);
+  }, [resetProgress, fetchQuestions]);
 
-  // Get the actual start index of redundant part by finding it in the sentence
-  const getRedundantBounds = () => {
-    if (!currentSentence) return { start: -1, end: -1 };
-    const sentence = currentSentence.sentence;
-    const redundantText = currentSentence.redundantPart.text;
-    const start = sentence.indexOf(redundantText);
-    return { start, end: start + redundantText.length };
-  };
-
-  const handleWordClick = (start: number, end: number) => {
+  const handleAnswerSelect = (answer: string) => {
     if (gameState !== "playing") return;
 
-    setSelectedWord({ start, end });
-
-    const { start: redundantStart, end: redundantEnd } = getRedundantBounds();
-
-    // Check if clicked word is within the redundant part
-    const correct = start >= redundantStart && end <= redundantEnd;
+    setSelectedAnswer(answer);
+    const correct = answer === currentSentence.correctOption;
     setIsCorrect(correct);
 
     if (correct) {
@@ -85,74 +178,10 @@ const Brevity = () => {
       setGameState("ended");
     } else {
       setCurrentIndex((prev) => prev + 1);
-      setSelectedWord(null);
+      setSelectedAnswer(null);
       setIsCorrect(null);
       setGameState("playing");
     }
-  };
-
-  // Split sentence into individual clickable words
-  const renderSentence = () => {
-    if (!currentSentence) return null;
-
-    const sentence = currentSentence.sentence;
-    const { start: redundantStart, end: redundantEnd } = getRedundantBounds();
-    const words: { text: string; start: number; end: number; isRedundant: boolean }[] = [];
-
-    // Split by words
-    const regex = /(\S+)/g;
-    let match;
-
-    while ((match = regex.exec(sentence)) !== null) {
-      const wordStart = match.index;
-      const wordEnd = match.index + match[0].length;
-
-      // Check if this word is within the redundant part
-      const isRedundant = wordStart >= redundantStart && wordEnd <= redundantEnd;
-
-      words.push({
-        text: match[0],
-        start: wordStart,
-        end: wordEnd,
-        isRedundant,
-      });
-    }
-
-    const showCorrectHighlight = gameState === "showingResult";
-
-    return (
-      <div className="flex flex-wrap gap-2 justify-center text-xl leading-relaxed">
-        {words.map((word, index) => {
-          const isClickedWord =
-            selectedWord && word.start === selectedWord.start && word.end === selectedWord.end;
-
-          // Highlight all redundant words when showing results
-          const isRedundantHighlighted = word.isRedundant && showCorrectHighlight;
-
-          // Determine highlight style
-          const isCorrectlyIdentified = isRedundantHighlighted && isCorrect;
-          const isIncorrectlyMissed = isRedundantHighlighted && !isCorrect;
-          const isWrongClick = isClickedWord && !isCorrect && !word.isRedundant;
-
-          return (
-            <motion.span
-              key={index}
-              onClick={() => handleWordClick(word.start, word.end)}
-              whileHover={gameState === "playing" ? { scale: 1.05 } : {}}
-              className={`
-                px-2 py-1 rounded-lg cursor-pointer transition-all duration-200
-                ${gameState === "playing" ? "hover:bg-primary/20 hover:text-primary" : ""}
-                ${isCorrectlyIdentified ? "bg-neon-green/30 text-neon-green border border-neon-green/50" : ""}
-                ${isIncorrectlyMissed ? "bg-neon-orange/30 text-neon-orange border border-neon-orange/50" : ""}
-                ${isWrongClick ? "bg-destructive/30 text-destructive border border-destructive/50" : ""}
-              `}
-            >
-              {word.text}
-            </motion.span>
-          );
-        })}
-      </div>
-    );
   };
 
   return (
@@ -173,11 +202,11 @@ const Brevity = () => {
           </div>
           <div>
             <h1 className="font-display text-2xl font-bold">Brevity</h1>
-            <p className="text-sm text-muted-foreground">Cut the redundancy</p>
+            <p className="text-sm text-muted-foreground">Choose the concise version</p>
           </div>
         </div>
 
-        {gameState !== "ready" && gameState !== "ended" && (
+        {gameState !== "ready" && gameState !== "ended" && gameState !== "loading" && (
           <div className="flex items-center gap-4">
             <div className="text-right">
               <p className="text-sm text-muted-foreground">Score</p>
@@ -197,7 +226,7 @@ const Brevity = () => {
       <div className="flex-1 flex items-center justify-center">
         <AnimatePresence mode="wait">
           {/* Ready State */}
-          {gameState === "ready" && (
+          {(gameState === "ready" || gameState === "loading") && (
             <motion.div
               key="ready"
               initial={{ opacity: 0, scale: 0.9 }}
@@ -218,18 +247,26 @@ const Brevity = () => {
                 </div>
               </motion.div>
 
-              <h2 className="font-display text-3xl font-bold mb-4">Ready to cut redundancy?</h2>
+              <h2 className="font-display text-3xl font-bold mb-4">Ready to write concisely?</h2>
               <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                Find and click on the unnecessary or redundant words in each sentence. Sharpen your
-                writing by eliminating wordiness!
+                Read the wordy sentence and select the most concise version.
+                Master the art of brevity!
               </p>
 
               <Button
                 onClick={startGame}
                 size="lg"
+                disabled={gameState === "loading"}
                 className="bg-gradient-to-r from-neon-pink to-primary hover:opacity-90"
               >
-                Start Game
+                {gameState === "loading" ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  "Start Game"
+                )}
               </Button>
             </motion.div>
           )}
@@ -259,43 +296,61 @@ const Brevity = () => {
                 </div>
               </div>
 
-              {/* Sentence Card */}
+              {/* Original Sentence Card */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass-card rounded-2xl p-8 mb-6"
+                className="glass-card rounded-2xl p-6 mb-6"
               >
-                <p className="text-sm text-muted-foreground mb-4 text-center">
-                  {gameState === "playing"
-                    ? "Click on the redundant or unnecessary part:"
-                    : "Result:"}
+                <p className="text-sm text-muted-foreground mb-2">Wordy sentence:</p>
+                <p className="text-lg font-medium text-neon-orange">
+                  "{currentSentence.originalSentence}"
                 </p>
-
-                {renderSentence()}
-
-                {/* Result Feedback */}
-                <AnimatePresence>
-                  {gameState === "showingResult" && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-6 flex justify-center"
-                    >
-                      {isCorrect ? (
-                        <div className="flex items-center gap-2 text-neon-green">
-                          <Check className="w-5 h-5" />
-                          <span className="font-medium">Correct!</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 text-destructive">
-                          <X className="w-5 h-5" />
-                          <span className="font-medium">Not quite!</span>
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </motion.div>
+
+              {/* Options */}
+              <p className="text-sm text-muted-foreground mb-4 text-center">
+                {gameState === "playing" ? "Choose the most concise version:" : "Result:"}
+              </p>
+
+              <div className="grid gap-3">
+                {currentSentence.options.map((option, index) => {
+                  const isSelected = selectedAnswer === option;
+                  const isCorrectOption = option === currentSentence.correctOption;
+                  const showResult = gameState === "showingResult";
+
+                  return (
+                    <motion.button
+                      key={option}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      onClick={() => handleAnswerSelect(option)}
+                      disabled={gameState === "showingResult"}
+                      className={`
+                        w-full p-4 rounded-xl text-left transition-all duration-200
+                        border
+                        ${showResult && isCorrectOption
+                          ? "bg-neon-green/20 border-neon-green text-neon-green"
+                          : showResult && isSelected && !isCorrectOption
+                            ? "bg-destructive/20 border-destructive text-destructive"
+                            : "glass-card border-border/50 hover:border-primary/50 hover:bg-primary/10"
+                        }
+                      `}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{option}</span>
+                        {showResult && isCorrectOption && (
+                          <Check className="w-5 h-5 text-neon-green" />
+                        )}
+                        {showResult && isSelected && !isCorrectOption && (
+                          <X className="w-5 h-5 text-destructive" />
+                        )}
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
 
               {/* Reason Card */}
               <AnimatePresence>
@@ -303,14 +358,12 @@ const Brevity = () => {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-xl bg-neon-cyan/10 border border-neon-cyan/30"
+                    className="mt-6 p-4 rounded-xl bg-neon-cyan/10 border border-neon-cyan/30"
                   >
                     <div className="flex items-start gap-3">
                       <Lightbulb className="w-5 h-5 text-neon-cyan flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-medium text-neon-cyan mb-1">
-                          The redundant part: "{currentSentence.redundantPart.text}"
-                        </p>
+                        <p className="font-medium text-neon-cyan mb-1">Why?</p>
                         <p className="text-sm text-muted-foreground">{currentSentence.reason}</p>
                       </div>
                     </div>

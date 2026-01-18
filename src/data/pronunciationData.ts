@@ -3,7 +3,9 @@ export interface PronunciationWord {
   word: string;
   definition: string;
   correctPronunciation: string; // Oxford respelling
+  ttsCorrect?: string; // TTS-friendly version
   incorrectPronunciations: string[]; // Common mispronunciations in Oxford respelling
+  ttsIncorrect?: string[]; // TTS-friendly versions
   ipaCorrect: string; // IPA for reference
   explanation: string;
 }

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
+import { useContextQuestions as useApiContextQuestions, ContextQuestion as ApiContextQuestion } from "@/hooks/useGameQuestions";
 
 const TOTAL_QUESTIONS = 10;
 
@@ -34,14 +35,42 @@ const ContextGame = () => {
     wordsLearned: correctAnswers,
   });
 
-  const initGame = useCallback(() => {
-    const shuffled = [...contextQuestions].sort(() => Math.random() - 0.5);
-    const selected = shuffled.slice(0, TOTAL_QUESTIONS);
+  const { refetch: fetchApiQuestions } = useApiContextQuestions(TOTAL_QUESTIONS);
+
+  // Convert API question to local format
+  const convertApiQuestion = (apiQ: ApiContextQuestion): ContextQuestion => ({
+    id: String(apiQ.id),
+    sentence: apiQ.sentence,
+    correctWord: apiQ.correctWord,
+    options: apiQ.options,
+    explanation: apiQ.explanation,
+  });
+
+  const initGame = useCallback(async () => {
+    let gameQuestions: ContextQuestion[] = [];
+
+    // Try API first
+    try {
+      const result = await fetchApiQuestions();
+      if (result.data && result.data.length > 0) {
+        gameQuestions = result.data.map(convertApiQuestion);
+      }
+    } catch {
+      // API failed, will use mock
+    }
+
+    // Fallback to mock data
+    if (gameQuestions.length === 0) {
+      const shuffled = [...contextQuestions].sort(() => Math.random() - 0.5);
+      gameQuestions = shuffled.slice(0, TOTAL_QUESTIONS);
+    }
+
     // Shuffle options for each question
-    const withShuffledOptions = selected.map((q) => ({
+    const withShuffledOptions = gameQuestions.map((q) => ({
       ...q,
       options: [...q.options].sort(() => Math.random() - 0.5),
     }));
+
     setQuestions(withShuffledOptions);
     setCurrentQuestionIndex(0);
     setSelectedOption(null);
@@ -50,7 +79,7 @@ const ContextGame = () => {
     setCorrectAnswers(0);
     resetProgress();
     setGameState("playing");
-  }, [resetProgress]);
+  }, [resetProgress, fetchApiQuestions]);
 
   const currentQuestion = questions[currentQuestionIndex];
 

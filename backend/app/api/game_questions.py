@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.llm.factory import LLMServiceError
+from app.llm.game_question_agent import GameQuestionAgent
 from app.services.game_question_service import GameQuestionService
 
 router = APIRouter(prefix="/api/game-questions", tags=["game-questions"])
@@ -80,11 +81,7 @@ async def get_questions(
 
     Returns questions from the database. Use only_reviewed=true for production use.
     """
-    valid_types = [
-        "clarity", "transitions", "brevity", "context",
-        "diction", "punctuation", "listening", "speed_reading",
-        "word_parts", "rocket", "rephrase", "recall", "attention"
-    ]
+    valid_types = GameQuestionAgent.SUPPORTED_GAME_TYPES
     if game_type not in valid_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

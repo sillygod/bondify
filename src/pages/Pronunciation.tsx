@@ -1,17 +1,19 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Trophy, RotateCcw, Check, X, Volume2, Lightbulb, ArrowLeft } from "lucide-react";
+import { Mic, Trophy, RotateCcw, Check, X, Volume2, Lightbulb, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PronunciationWord, getRandomPronunciationWords } from "@/data/pronunciationData";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
 import { useNavigate } from "react-router-dom";
+import { usePronunciationQuestions, PronunciationQuestion as ApiPronunciationQuestion } from "@/hooks/useGameQuestions";
 
 type GameState = "ready" | "playing" | "showingResult" | "ended";
 
 interface QuestionData {
   word: PronunciationWord;
-  shownPronunciation: string;
+  shownPronunciation: string; // Display text (respelling)
+  shownTTS: string; // TTS-friendly text
   isShownCorrect: boolean;
 }
 
@@ -28,6 +30,8 @@ const Pronunciation = () => {
   const currentQuestion = questions[currentIndex];
   const totalQuestions = 10;
   const { setHideHeader } = useLayoutControl();
+
+  const { refetch: fetchApiQuestions, isFetching: loading } = usePronunciationQuestions(totalQuestions);
 
   useEffect(() => {
     if (gameState !== "ready" && gameState !== "ended") {
@@ -59,17 +63,30 @@ const Pronunciation = () => {
     window.speechSynthesis.speak(utterance);
   }, []);
 
+  // Speak the actual word (TTS can't interpret respelling notation)
+  const speakWord = useCallback((word: string) => {
+    if (!word) return;
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(word);
+    utterance.rate = 0.8;
+    window.speechSynthesis.speak(utterance);
+  }, []);
+
   const speakShownPronunciation = useCallback(() => {
     if (!currentQuestion) return;
-    speakPronunciation(currentQuestion.shownPronunciation);
+    // Use TTS-friendly text if available, fallback to respelling
+    speakPronunciation(currentQuestion.shownTTS || currentQuestion.shownPronunciation);
   }, [currentQuestion, speakPronunciation]);
 
   const speakCorrectPronunciation = useCallback(() => {
     if (!currentQuestion) return;
-    speakPronunciation(currentQuestion.word.correctPronunciation);
+    // Use TTS-friendly text if available, fallback to respelling
+    const tts = currentQuestion.word.ttsCorrect || currentQuestion.word.correctPronunciation;
+    speakPronunciation(tts);
   }, [currentQuestion, speakPronunciation]);
 
-  // Auto-play the *shown* pronunciation when a new question appears
+  // Auto-play the pronunciation when a new question appears
   useEffect(() => {
     if (gameState === "playing" && currentQuestion) {
       const timer = setTimeout(() => {
@@ -79,18 +96,56 @@ const Pronunciation = () => {
     }
   }, [gameState, currentIndex, currentQuestion, speakShownPronunciation]);
 
-  const startGame = useCallback(() => {
-    const words = getRandomPronunciationWords(totalQuestions);
+  // Convert API question to local format
+  const convertApiQuestion = (apiQ: ApiPronunciationQuestion): PronunciationWord => ({
+    id: String(apiQ.id),
+    word: apiQ.word,
+    definition: apiQ.definition,
+    correctPronunciation: apiQ.correctPronunciation,
+    ttsCorrect: apiQ.ttsCorrect,
+    incorrectPronunciations: apiQ.incorrectPronunciations,
+    ttsIncorrect: apiQ.ttsIncorrect,
+    ipaCorrect: apiQ.ipaCorrect,
+    explanation: apiQ.explanation,
+  });
+
+  const startGame = useCallback(async () => {
+    let words: PronunciationWord[] = [];
+
+    // Try API first
+    try {
+      const result = await fetchApiQuestions();
+      if (result.data && result.data.length > 0) {
+        words = result.data.map(convertApiQuestion);
+      }
+    } catch {
+      // API failed, will use mock
+    }
+
+    // Fallback to mock data
+    if (words.length === 0) {
+      words = getRandomPronunciationWords(totalQuestions);
+    }
+
     // For each word, randomly decide whether to show correct or incorrect pronunciation
     const newQuestions: QuestionData[] = words.map(word => {
       const showCorrect = Math.random() > 0.5;
-      return {
-        word,
-        shownPronunciation: showCorrect
-          ? word.correctPronunciation
-          : word.incorrectPronunciations[Math.floor(Math.random() * word.incorrectPronunciations.length)],
-        isShownCorrect: showCorrect
-      };
+      if (showCorrect) {
+        return {
+          word,
+          shownPronunciation: word.correctPronunciation,
+          shownTTS: word.ttsCorrect || word.correctPronunciation,
+          isShownCorrect: true,
+        };
+      } else {
+        const incorrectIdx = Math.floor(Math.random() * word.incorrectPronunciations.length);
+        return {
+          word,
+          shownPronunciation: word.incorrectPronunciations[incorrectIdx],
+          shownTTS: word.ttsIncorrect?.[incorrectIdx] || word.incorrectPronunciations[incorrectIdx],
+          isShownCorrect: false,
+        };
+      }
     });
 
     setQuestions(newQuestions);
@@ -101,7 +156,7 @@ const Pronunciation = () => {
     setIsCorrect(null);
     resetProgress();
     setGameState("playing");
-  }, [resetProgress]);
+  }, [resetProgress, fetchApiQuestions]);
 
   const handleAnswer = (userSaysCorrect: boolean) => {
     if (gameState !== "playing") return;
@@ -324,8 +379,8 @@ const Pronunciation = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className={`p-4 rounded-xl mb-4 ${isCorrect
-                        ? "bg-neon-green/20 border border-neon-green/30"
-                        : "bg-destructive/20 border border-destructive/30"
+                      ? "bg-neon-green/20 border border-neon-green/30"
+                      : "bg-destructive/20 border border-destructive/30"
                       }`}
                   >
                     <div className="flex items-center gap-3">

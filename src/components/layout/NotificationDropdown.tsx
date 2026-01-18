@@ -1,4 +1,4 @@
-import { Bell, BookOpen, Trophy, Zap, Calendar } from "lucide-react";
+import { Bell, BookOpen, Trophy, Zap, Calendar, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
@@ -8,49 +8,54 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useNotifications, useMarkAsRead } from "@/hooks/useNotifications";
+import type { Notification } from "@/lib/api/notifications";
 
-const notifications = [
-  {
-    id: 1,
-    icon: Trophy,
-    title: "Achievement Unlocked!",
-    message: "You've completed 10 vocabulary exercises",
-    time: "2 min ago",
-    unread: true,
-    color: "text-neon-orange",
-  },
-  {
-    id: 2,
-    icon: Zap,
-    title: "Streak Milestone",
-    message: "You're on a 7-day streak! Keep it up!",
-    time: "1 hour ago",
-    unread: true,
-    color: "text-neon-pink",
-  },
-  {
-    id: 3,
-    icon: BookOpen,
-    title: "New Words Added",
-    message: "5 new words added to your word list",
-    time: "3 hours ago",
-    unread: false,
-    color: "text-neon-cyan",
-  },
-  {
-    id: 4,
-    icon: Calendar,
-    title: "Daily Reminder",
-    message: "Don't forget to practice today!",
-    time: "Yesterday",
-    unread: false,
-    color: "text-primary",
-  },
-];
+// Map notification types to icons
+const iconMap = {
+  achievement: Trophy,
+  streak: Zap,
+  wordlist: BookOpen,
+  reminder: Calendar,
+};
+
+// Map notification types to colors
+const colorMap = {
+  achievement: "text-neon-orange",
+  streak: "text-neon-pink",
+  wordlist: "text-neon-cyan",
+  reminder: "text-primary",
+};
+
+// Format relative time from ISO string
+function formatRelativeTime(isoString: string): string {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins} min ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  if (diffDays === 1) return "Yesterday";
+  return `${diffDays} days ago`;
+}
 
 export const NotificationDropdown = () => {
   const navigate = useNavigate();
-  const unreadCount = notifications.filter((n) => n.unread).length;
+  const { data, isLoading } = useNotifications();
+  const markAsRead = useMarkAsRead();
+
+  const notifications = data?.notifications || [];
+  const unreadCount = data?.unreadCount || 0;
+
+  const handleNotificationClick = (notification: Notification) => {
+    if (!notification.isRead) {
+      markAsRead.mutate(notification.id);
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -62,8 +67,8 @@ export const NotificationDropdown = () => {
           )}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent 
-        align="end" 
+      <DropdownMenuContent
+        align="end"
         className="w-80 bg-card border-border/50 shadow-xl"
       >
         <DropdownMenuLabel className="flex items-center justify-between py-3">
@@ -76,35 +81,50 @@ export const NotificationDropdown = () => {
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-border/50" />
         <div className="max-h-80 overflow-y-auto">
-          {notifications.map((notification) => (
-            <DropdownMenuItem
-              key={notification.id}
-              className={`flex items-start gap-3 p-3 cursor-pointer focus:bg-secondary/50 ${
-                notification.unread ? "bg-secondary/30" : ""
-              }`}
-            >
-              <div className={`p-2 rounded-lg bg-secondary ${notification.color}`}>
-                <notification.icon className="w-4 h-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">
-                  {notification.title}
-                </p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {notification.message}
-                </p>
-                <p className="text-xs text-muted-foreground/60 mt-1">
-                  {notification.time}
-                </p>
-              </div>
-              {notification.unread && (
-                <span className="w-2 h-2 bg-neon-cyan rounded-full mt-2" />
-              )}
-            </DropdownMenuItem>
-          ))}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              No notifications yet
+            </div>
+          ) : (
+            notifications.slice(0, 5).map((notification) => {
+              const Icon = iconMap[notification.type] || Bell;
+              const color = colorMap[notification.type] || "text-primary";
+
+              return (
+                <DropdownMenuItem
+                  key={notification.id}
+                  className={`flex items-start gap-3 p-3 cursor-pointer focus:bg-secondary/50 ${!notification.isRead ? "bg-secondary/30" : ""
+                    }`}
+                  onClick={() => handleNotificationClick(notification)}
+                >
+                  <div className={`p-2 rounded-lg bg-secondary ${color}`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">
+                      {notification.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {notification.message}
+                    </p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">
+                      {formatRelativeTime(notification.createdAt)}
+                    </p>
+                  </div>
+                  {!notification.isRead && (
+                    <span className="w-2 h-2 bg-neon-cyan rounded-full mt-2" />
+                  )}
+                </DropdownMenuItem>
+              );
+            })
+          )}
         </div>
         <DropdownMenuSeparator className="bg-border/50" />
-        <DropdownMenuItem 
+        <DropdownMenuItem
           className="justify-center py-3 text-sm text-primary hover:text-primary cursor-pointer focus:bg-secondary/50"
           onClick={() => navigate("/notifications")}
         >

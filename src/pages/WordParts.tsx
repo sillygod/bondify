@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
+import { useWordPartsQuestions, WordPartsQuestion } from "@/hooks/useGameQuestions";
 
 interface WordPart {
   type: "prefix" | "root" | "suffix";
@@ -15,8 +16,17 @@ interface WordPart {
   meaning: string;
 }
 
+// Simplified word type for this game (works with both API and mock data)
+interface SimpleWord {
+  word: string;
+  meaning: string;
+  prefix?: string;
+  root?: string;
+  suffix?: string;
+}
+
 interface Question {
-  word: Word;
+  word: SimpleWord;
   parts: WordPart[];
   missingPartIndex: number;
   options: string[];
@@ -158,8 +168,44 @@ const WordParts = () => {
     });
   }, []);
 
-  const initGame = useCallback(() => {
-    setQuestions(generateQuestions());
+  const { refetch: fetchApiQuestions } = useWordPartsQuestions(TOTAL_QUESTIONS);
+
+  // Convert API question to local Question format
+  const convertApiQuestion = (apiQ: WordPartsQuestion): Question => {
+    const word: SimpleWord = {
+      word: apiQ.word,
+      meaning: apiQ.meaning,
+      prefix: apiQ.parts.find(p => p.type === "prefix")?.value,
+      root: apiQ.parts.find(p => p.type === "root")?.value,
+      suffix: apiQ.parts.find(p => p.type === "suffix")?.value,
+    };
+    return {
+      word,
+      parts: apiQ.parts,
+      missingPartIndex: apiQ.targetPartIndex,
+      options: apiQ.options,
+    };
+  };
+
+  const initGame = useCallback(async () => {
+    let gameQuestions: Question[] = [];
+
+    // Try API first
+    try {
+      const result = await fetchApiQuestions();
+      if (result.data && result.data.length > 0) {
+        gameQuestions = result.data.map(convertApiQuestion);
+      }
+    } catch {
+      // API failed, will use mock
+    }
+
+    // Fallback to mock data
+    if (gameQuestions.length === 0) {
+      gameQuestions = generateQuestions();
+    }
+
+    setQuestions(gameQuestions);
     setCurrentQuestionIndex(0);
     setScore(0);
     setStreak(0);
@@ -167,7 +213,7 @@ const WordParts = () => {
     setIsCorrect(null);
     resetProgress();
     setGameState("playing");
-  }, [generateQuestions, resetProgress]);
+  }, [generateQuestions, resetProgress, fetchApiQuestions]);
 
   const handleAnswer = (answer: string) => {
     if (selectedAnswer) return;

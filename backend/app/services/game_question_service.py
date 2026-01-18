@@ -34,6 +34,8 @@ class GameQuestionService:
                     existing_words.add(data["sentence"].lower()[:100])  # Use first 100 chars
                 elif "originalSentence" in data:
                     existing_words.add(data["originalSentence"].lower()[:100])
+                elif "title" in data:  # speed_reading articles
+                    existing_words.add(data["title"].lower())
             except (json.JSONDecodeError, KeyError):
                 pass
 
@@ -76,6 +78,8 @@ class GameQuestionService:
                 is_duplicate = question["sentence"].lower()[:100] in existing_words
             elif "originalSentence" in question:
                 is_duplicate = question["originalSentence"].lower()[:100] in existing_words
+            elif "title" in question:  # speed_reading articles
+                is_duplicate = question["title"].lower() in existing_words
 
             if is_duplicate:
                 continue
@@ -97,6 +101,8 @@ class GameQuestionService:
                 existing_words.add(question["sentence"].lower()[:100])
             elif "originalSentence" in question:
                 existing_words.add(question["originalSentence"].lower()[:100])
+            elif "title" in question:  # speed_reading articles
+                existing_words.add(question["title"].lower())
 
         await self.db.commit()
 

@@ -424,39 +424,58 @@ Requirements:
 
 Return ONLY valid JSON array, no other text."""
 
-SPEED_READING_QUESTION_PROMPT = """Generate 1 reading comprehension article with {count} paragraphs.
+SPEED_READING_QUESTION_PROMPT = """Generate {count} reading comprehension articles.
 
-Each paragraph should have a comprehension question.
+Each article should have a unique title and exactly 3 paragraphs with comprehension questions (one per paragraph).
 
-Return a JSON object with exactly this structure:
-{{
-  "title": "The Power of Sleep",
-  "paragraphs": [
-    {{
-      "text": "Sleep is one of the most important factors in maintaining good health...",
-      "question": {{
-        "text": "According to the passage, what happens during sleep?",
-        "options": [
-          "The brain stops all activity",
-          "The body repairs tissues and consolidates memories",
-          "Heart rate increases significantly",
-          "Appetite hormones are suppressed"
-        ],
-        "correctIndex": 1
+Return a JSON array with exactly this structure:
+[
+  {{
+    "title": "The Power of Sleep",
+    "paragraphs": [
+      {{
+        "text": "Sleep is one of the most important factors...",
+        "question": {{
+          "text": "According to the passage, what happens during sleep?",
+          "options": [
+            "The brain stops all activity",
+            "The body repairs tissues and consolidates memories",
+            "Heart rate increases significantly",
+            "Appetite hormones are suppressed"
+          ],
+          "correctIndex": 1
+        }}
+      }},
+      {{
+        "text": "The quality of sleep matters...",
+        "question": {{
+          "text": "What is a key characteristic of deep sleep?",
+          "options": ["Option A", "Option B", "Option C", "Option D"],
+          "correctIndex": 2
+        }}
+      }},
+      {{
+        "text": "Improving sleep hygiene can...",
+        "question": {{
+          "text": "Why should electronic devices be avoided before bedtime?",
+          "options": ["Option A", "Option B", "Option C", "Option D"],
+          "correctIndex": 2
+        }}
       }}
-    }}
-  ]
-}}
+    ]
+  }}
+]
 
 Requirements:
-- Article should be 200-400 words across all paragraphs
+- Generate exactly {count} articles, each with EXACTLY 3 paragraphs
+- Each article should have a unique title
 - Topics: science, technology, health, environment, history, economics
 - Each paragraph should be 80-150 words
 - Questions should test comprehension, not just memory
 - options must have exactly 4 choices
 - correctIndex is 0-based
 
-Return ONLY valid JSON object, no other text."""
+Return ONLY valid JSON array, no other text."""
 
 WORD_PARTS_QUESTION_PROMPT = """Generate {count} word etymology questions.
 
@@ -584,3 +603,32 @@ Requirements:
 - The text must clearly associate the items with their categories
 
 Return ONLY valid JSON object, no other text."""
+
+PRONUNCIATION_QUESTION_PROMPT = """Generate {count} pronunciation questions for commonly mispronounced English words.
+
+Return a JSON array with exactly this structure:
+[
+  {{
+    "word": "epitome",
+    "definition": "A perfect example of a particular quality or type",
+    "correctPronunciation": "ih-PIT-uh-mee",
+    "ttsCorrect": "ih pit uh mee",
+    "incorrectPronunciations": ["EP-ih-tohm", "ep-ih-TOHM"],
+    "ttsIncorrect": ["ep ih tome", "ep ih tome"],
+    "ipaCorrect": "/ɪˈpɪtəmi/",
+    "explanation": "Many people pronounce it like 'epi-tome' but it has four syllables with stress on the second."
+  }}
+]
+
+Requirements:
+- Focus on vocabulary words that native speakers commonly mispronounce
+- Use Oxford-style respelling for pronunciations (e.g. ih-PIT-uh-mee, not IPA)
+- correctPronunciation should use capital letters for stressed syllables
+- ttsCorrect is a TTS-friendly version: lowercase, spaces instead of hyphens, readable by speech synthesis
+- incorrectPronunciations must have exactly 2 common wrong pronunciations
+- ttsIncorrect is an array of TTS-friendly versions matching incorrectPronunciations order
+- ipaCorrect should be IPA notation for reference
+- explanation should explain why the word is commonly mispronounced
+- Include words from various categories: academic, food, science, everyday words
+
+Return ONLY valid JSON array, no other text."""

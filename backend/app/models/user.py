@@ -27,4 +27,5 @@ class User(BaseModel):
     streak = relationship("UserStreak", back_populates="user", uselist=False, cascade="all, delete-orphan")
     achievements = relationship("UserAchievement", back_populates="user", cascade="all, delete-orphan")
     wordlist = relationship("UserWordlist", back_populates="user", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
 

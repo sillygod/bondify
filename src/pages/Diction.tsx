@@ -89,11 +89,16 @@ const Diction = () => {
     if (!currentQuestion) return null;
 
     const { sentence, highlightedPart } = currentQuestion;
-    const startIdx = highlightedPart.startIndex;
-    const endIdx = startIdx + highlightedPart.text.length;
 
-    const before = sentence.slice(0, startIdx);
-    const highlighted = sentence.slice(startIdx, endIdx);
+    // Use indexOf to find actual position (more reliable than API's startIndex)
+    const startIdx = sentence.indexOf(highlightedPart.text);
+
+    // Fallback to API startIndex if text not found exactly
+    const actualStartIdx = startIdx !== -1 ? startIdx : highlightedPart.startIndex;
+    const endIdx = actualStartIdx + highlightedPart.text.length;
+
+    const before = sentence.slice(0, actualStartIdx);
+    const highlighted = sentence.slice(actualStartIdx, endIdx);
     const after = sentence.slice(endIdx);
 
     return (

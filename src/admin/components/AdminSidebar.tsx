@@ -4,7 +4,7 @@ import {
     FileText,
     Sparkles,
     ArrowLeft,
-    Settings
+    Bell
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ const navItems = [
     { path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
     { path: "/admin/questions", icon: FileText, label: "Questions" },
     { path: "/admin/generate", icon: Sparkles, label: "Generate" },
+    { path: "/admin/notifications", icon: Bell, label: "Notifications" },
 ];
 
 export const AdminSidebar = () => {

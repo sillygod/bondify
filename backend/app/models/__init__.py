@@ -7,6 +7,7 @@ from app.models.achievement import Achievement, UserAchievement
 from app.models.vocabulary_cache import VocabularyCache
 from app.models.game_question import GameQuestion
 from app.models.user_wordlist import UserWordlist
+from app.models.notification import Notification
 
 __all__ = [
     "BaseModel",
@@ -18,5 +19,5 @@ __all__ = [
     "VocabularyCache",
     "GameQuestion",
     "UserWordlist",
+    "Notification",
 ]
-

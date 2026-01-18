@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Trophy, RotateCcw, Check, X, Lightbulb, ArrowLeft } from "lucide-react";
+import { Sparkles, Trophy, RotateCcw, Check, X, Lightbulb, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ClaritySentence, getRandomClaritySentences } from "@/data/clarityData";
+import { ClaritySentence, clarityData } from "@/data/clarityData";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
 import { useNavigate } from "react-router-dom";
+import { useClarityQuestions, ClarityQuestion } from "@/hooks/useGameQuestions";
 
-type GameState = "ready" | "playing" | "selectingAnswer" | "showingResult" | "ended";
+type GameState = "ready" | "loading" | "playing" | "selectingAnswer" | "showingResult" | "ended";
 
 const Clarity = () => {
   const [gameState, setGameState] = useState<GameState>("ready");
@@ -24,6 +25,11 @@ const Clarity = () => {
   const totalQuestions = 10;
   const { setHideHeader } = useLayoutControl();
   const navigate = useNavigate();
+  const [usingMockData, setUsingMockData] = useState(false);
+
+  // TanStack Query hook
+  const { refetch: fetchQuestions } = useClarityQuestions(totalQuestions);
+
   useEffect(() => {
     if (gameState !== "ready" && gameState !== "ended") {
       setHideHeader(true);
@@ -40,9 +46,40 @@ const Clarity = () => {
     wordsLearned: currentIndex,
   });
 
-  const startGame = useCallback(() => {
-    const newSentences = getRandomClaritySentences(totalQuestions);
-    setSentences(newSentences);
+  const startGame = useCallback(async () => {
+    setGameState("loading");
+    setUsingMockData(false);
+
+    try {
+      const result = await fetchQuestions();
+      const apiQuestions = result.data;
+
+      if (apiQuestions && apiQuestions.length > 0) {
+        // Transform API questions to match frontend interface
+        const transformedSentences: ClaritySentence[] = apiQuestions.map((q: ClarityQuestion, index: number) => ({
+          id: String(q.id ?? index),
+          sentence: q.sentence,
+          wordyPart: {
+            startIndex: q.wordyPart.startIndex,
+            endIndex: q.wordyPart.startIndex + q.wordyPart.text.length,
+            text: q.wordyPart.text,
+          },
+          options: q.options,
+          correctOption: q.correctOption,
+          reason: q.reason,
+        }));
+        setSentences(transformedSentences);
+      } else {
+        throw new Error("No questions available");
+      }
+    } catch (error) {
+      console.warn("API unavailable, using mock data:", error);
+      setUsingMockData(true);
+      // Fallback to mock data
+      const shuffled = [...clarityData].sort(() => Math.random() - 0.5).slice(0, totalQuestions);
+      setSentences(shuffled);
+    }
+
     setCurrentIndex(0);
     setScore(0);
     setStreak(0);
@@ -50,9 +87,9 @@ const Clarity = () => {
     setSelectedAnswer(null);
     setIsCorrectPart(null);
     setIsCorrectAnswer(null);
-    resetProgress(); // Reset progress tracking for new game
+    resetProgress();
     setGameState("playing");
-  }, [resetProgress]);
+  }, [resetProgress, fetchQuestions]);
 
   const handlePartClick = (start: number, end: number) => {
     if (gameState !== "playing") return;
@@ -218,7 +255,7 @@ const Clarity = () => {
       <div className="flex-1 flex items-center justify-center">
         <AnimatePresence mode="wait">
           {/* Ready State */}
-          {gameState === "ready" && (
+          {(gameState === "ready" || gameState === "loading") && (
             <motion.div
               key="ready"
               initial={{ opacity: 0, scale: 0.9 }}
@@ -248,9 +285,17 @@ const Clarity = () => {
               <Button
                 onClick={startGame}
                 size="lg"
+                disabled={gameState === "loading"}
                 className="bg-gradient-to-r from-neon-orange to-neon-pink hover:opacity-90"
               >
-                Start Game
+                {gameState === "loading" ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  "Start Game"
+                )}
               </Button>
             </motion.div>
           )}

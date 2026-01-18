@@ -21,6 +21,7 @@ from app.llm.prompts import (
     REPHRASE_QUESTION_PROMPT,
     RECALL_QUESTION_PROMPT,
     ATTENTION_QUESTION_PROMPT,
+    PRONUNCIATION_QUESTION_PROMPT,
 )
 
 
@@ -41,6 +42,7 @@ class GameQuestionAgent:
         "rephrase",
         "recall",
         "attention",
+        "pronunciation",
     ]
 
     def __init__(self, llm: Optional[BaseChatModel] = None):
@@ -79,6 +81,7 @@ class GameQuestionAgent:
             "rephrase": REPHRASE_QUESTION_PROMPT,
             "recall": RECALL_QUESTION_PROMPT,
             "attention": ATTENTION_QUESTION_PROMPT,
+            "pronunciation": PRONUNCIATION_QUESTION_PROMPT,
         }
         prompt_template = prompts.get(game_type)
         if not prompt_template:
@@ -121,8 +124,8 @@ class GameQuestionAgent:
             response = await self.llm.ainvoke([HumanMessage(content=prompt)])
             result = self._parse_json_response(response.content)
 
-            # speed_reading returns a single article object, wrap in list
-            if game_type == "speed_reading" and isinstance(result, dict):
+            # Ensure result is a list
+            if isinstance(result, dict):
                 return [result]
 
             return result

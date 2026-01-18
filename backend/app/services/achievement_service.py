@@ -113,6 +113,14 @@ class AchievementService:
 
         if newly_unlocked:
             await self.db.flush()
+            # Create notifications for unlocked achievements
+            from app.services.notification_service import NotificationService
+            notification_service = NotificationService(self.db)
+            for achievement in newly_unlocked:
+                await notification_service.create_achievement_notification(
+                    user_id=user_id,
+                    achievement_name=achievement.name
+                )
         return newly_unlocked
 
     async def _get_user_stats(self, user_id: int) -> dict:

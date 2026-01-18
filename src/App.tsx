@@ -31,7 +31,7 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 // Admin imports
-import { AdminLayout, AdminDashboard, QuestionManager, GenerateQuestions } from "./admin";
+import { AdminLayout, AdminDashboard, QuestionManager, GenerateQuestions, NotificationManager } from "./admin";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +50,7 @@ const App = () => (
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/questions" element={<QuestionManager />} />
               <Route path="/admin/generate" element={<GenerateQuestions />} />
+              <Route path="/admin/notifications" element={<NotificationManager />} />
             </Route>
 
             {/* Main App Routes */}

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, CheckCircle2, XCircle, Zap, Target, Trophy } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, XCircle, Zap, Target, Trophy, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { transitionsData, categoryLabels, categoryColors, TransitionQuestion } from "@/data/transitionsData";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
+import { useTransitionsQuestions, TransitionsQuestion } from "@/hooks/useGameQuestions";
 
-type GameState = "idle" | "playing" | "result" | "complete";
+type GameState = "idle" | "loading" | "playing" | "result" | "complete";
 
 const Transitions = () => {
   const navigate = useNavigate();
@@ -24,6 +25,10 @@ const Transitions = () => {
   const currentQuestion = questions[currentIndex];
   const totalQuestions = 10;
   const { setHideHeader } = useLayoutControl();
+  const [usingMockData, setUsingMockData] = useState(false);
+
+  // TanStack Query hook
+  const { refetch: fetchQuestions, isFetching } = useTransitionsQuestions(totalQuestions);
 
   useEffect(() => {
     if (gameState !== "idle" && gameState !== "complete") {
@@ -43,21 +48,47 @@ const Transitions = () => {
     return shuffled;
   };
 
-  const startGame = useCallback(() => {
-    const shuffled = shuffleArray(transitionsData).slice(0, totalQuestions);
-    // Shuffle options for each question
-    const withShuffledOptions = shuffled.map(q => ({
-      ...q,
-      options: shuffleArray(q.options)
-    }));
-    setQuestions(withShuffledOptions);
+  const startGame = useCallback(async () => {
+    setGameState("loading");
+    setUsingMockData(false);
+
+    try {
+      const result = await fetchQuestions();
+      const apiQuestions = result.data;
+
+      if (apiQuestions && apiQuestions.length > 0) {
+        // Transform API questions to match frontend interface
+        const transformedQuestions: TransitionQuestion[] = apiQuestions.map((q: TransitionsQuestion, index: number) => ({
+          id: q.id ?? index,
+          context: q.paragraph.split('______')[0]?.trim() || q.paragraph,
+          blank: q.paragraph.includes('______') ? '______ ' + (q.paragraph.split('______')[1]?.trim() || '') : '',
+          correctAnswer: q.correctOption,
+          options: shuffleArray(q.options),
+          category: "addition" as const // Default category for API questions
+        }));
+        setQuestions(transformedQuestions);
+      } else {
+        throw new Error("No questions available");
+      }
+    } catch (error) {
+      console.warn("API unavailable, using mock data:", error);
+      setUsingMockData(true);
+      // Fallback to mock data
+      const shuffled = shuffleArray(transitionsData).slice(0, totalQuestions);
+      const withShuffledOptions = shuffled.map(q => ({
+        ...q,
+        options: shuffleArray(q.options)
+      }));
+      setQuestions(withShuffledOptions);
+    }
+
     setCurrentIndex(0);
     setScore(0);
     setStreak(0);
     setSelectedAnswer(null);
     setIsCorrect(null);
     setGameState("playing");
-  }, []);
+  }, [fetchQuestions]);
 
   const handleAnswerSelect = (answer: string) => {
     if (gameState !== "playing" || selectedAnswer !== null) return;
@@ -130,7 +161,7 @@ const Transitions = () => {
       </motion.div>
 
       {/* Idle State */}
-      {gameState === "idle" && (
+      {(gameState === "idle" || gameState === "loading") && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -162,10 +193,20 @@ const Transitions = () => {
               <Button
                 size="lg"
                 onClick={startGame}
+                disabled={gameState === "loading"}
                 className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
               >
-                Start Practice
-                <ArrowRight className="ml-2 h-4 w-4" />
+                {gameState === "loading" ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    Start Practice
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </div>
           </Card>
@@ -302,10 +343,10 @@ const Transitions = () => {
                   {score === totalQuestions
                     ? "Perfect! You're a master of transitions!"
                     : score >= 7
-                    ? "Great job! Your speaking will be more engaging."
-                    : score >= 5
-                    ? "Good effort! Keep practicing to improve."
-                    : "Keep going! Practice makes perfect."}
+                      ? "Great job! Your speaking will be more engaging."
+                      : score >= 5
+                        ? "Good effort! Keep practicing to improve."
+                        : "Keep going! Practice makes perfect."}
                 </p>
               </div>
 

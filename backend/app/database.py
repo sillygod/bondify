@@ -41,12 +41,26 @@ async def get_db() -> AsyncSession:
 
 
 async def init_db():
-    """Initialize database tables."""
+    """Initialize database.
+
+    Note: Database schema is managed by Alembic migrations.
+    Run 'alembic upgrade head' to apply migrations.
+    This function only ensures models are registered with Base.metadata.
+    """
     # Import all models to ensure they are registered with Base
-    from app.models import User, UserProgress, UserStreak, Achievement, UserAchievement, UserWordlist, VocabularyCache  # noqa: F401
-    
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    from app.models import (  # noqa: F401
+        User,
+        UserProgress,
+        UserStreak,
+        Achievement,
+        UserAchievement,
+        UserWordlist,
+        VocabularyCache,
+        GameQuestion,
+        Notification,
+    )
+    # Schema creation is handled by Alembic migrations
+    # To create tables, run: alembic upgrade head
 
 
 async def close_db():

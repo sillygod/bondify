@@ -7,22 +7,7 @@ import {
     Play
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const GAME_TYPES = [
-    { id: "clarity", label: "Clarity", description: "Simplify wordy phrases" },
-    { id: "transitions", label: "Transitions", description: "Choose transition words" },
-    { id: "brevity", label: "Brevity", description: "Make sentences concise" },
-    { id: "context", label: "Context", description: "Vocabulary in context" },
-    { id: "diction", label: "Diction", description: "Word choice correctness" },
-    { id: "punctuation", label: "Punctuation", description: "Punctuation practice" },
-    { id: "listening", label: "Listening", description: "Conversation comprehension" },
-    { id: "speed_reading", label: "Speed Reading", description: "Reading comprehension" },
-    { id: "word_parts", label: "Word Parts", description: "Etymology breakdown" },
-    { id: "rocket", label: "Rocket", description: "Synonym matching" },
-    { id: "rephrase", label: "Rephrase", description: "Sentence improvement" },
-    { id: "recall", label: "Recall", description: "Word recall from definition" },
-    { id: "attention", label: "Attention", description: "Listening categorization" },
-];
+import { GAME_TYPES } from "../constants";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 

@@ -21,12 +21,8 @@ import {
 } from "../api";
 import { EditQuestionDialog } from "../EditQuestionDialog";
 import { toast } from "sonner";
-
-const GAME_TYPES = [
-    "clarity", "transitions", "brevity", "context", "diction",
-    "punctuation", "listening", "speed_reading", "word_parts",
-    "rocket", "rephrase", "recall", "attention"
-];
+import { GAME_TYPES } from "../constants";
+import { ConfirmDialog, useConfirmDialog } from "../ConfirmDialog";
 
 // Detail Modal Component
 const QuestionDetailModal = ({
@@ -136,6 +132,7 @@ export const QuestionManager = () => {
     const [filter, setFilter] = useState<"all" | "reviewed" | "pending">("all");
     const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
     const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+    const { confirm, dialogProps } = useConfirmDialog();
 
     const fetchQuestions = async () => {
         setLoading(true);
@@ -170,9 +167,13 @@ export const QuestionManager = () => {
     };
 
     const handleDelete = async (questionId: number) => {
-        if (!confirm("Are you sure you want to delete this question? This action cannot be undone.")) {
-            return;
-        }
+        const confirmed = await confirm({
+            title: "Delete Question",
+            message: "Are you sure you want to delete this question? This action cannot be undone.",
+            variant: "danger",
+        });
+
+        if (!confirmed) return;
 
         try {
             await deleteQuestion(questionId);
@@ -223,6 +224,9 @@ export const QuestionManager = () => {
                 />
             )}
 
+            {/* Confirm Dialog */}
+            <ConfirmDialog {...dialogProps} confirmText="Delete" />
+
             {/* Page Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -243,16 +247,16 @@ export const QuestionManager = () => {
             <div className="flex flex-wrap gap-2">
                 {GAME_TYPES.map((type) => (
                     <button
-                        key={type}
-                        onClick={() => setSelectedType(type)}
+                        key={type.id}
+                        onClick={() => setSelectedType(type.id)}
                         className={cn(
                             "px-3 py-1.5 rounded-lg text-sm font-medium transition-all capitalize",
-                            selectedType === type
+                            selectedType === type.id
                                 ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
                                 : "bg-[#1a2744] text-gray-400 border border-transparent hover:text-white"
                         )}
                     >
-                        {type.replace(/_/g, " ")}
+                        {type.label}
                     </button>
                 ))}
             </div>
