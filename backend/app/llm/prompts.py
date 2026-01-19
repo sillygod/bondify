@@ -612,9 +612,9 @@ Return a JSON array with exactly this structure:
     "word": "epitome",
     "definition": "A perfect example of a particular quality or type",
     "correctPronunciation": "ih-PIT-uh-mee",
-    "ttsCorrect": "ih pit uh mee",
+    "ttsCorrect": "epitome",
     "incorrectPronunciations": ["EP-ih-tohm", "ep-ih-TOHM"],
-    "ttsIncorrect": ["ep ih tome", "ep ih tome"],
+    "ttsIncorrect": ["epi tome", "eppy tome"],
     "ipaCorrect": "/ɪˈpɪtəmi/",
     "explanation": "Many people pronounce it like 'epi-tome' but it has four syllables with stress on the second."
   }}
@@ -624,11 +624,14 @@ Requirements:
 - Focus on vocabulary words that native speakers commonly mispronounce
 - Use Oxford-style respelling for pronunciations (e.g. ih-PIT-uh-mee, not IPA)
 - correctPronunciation should use capital letters for stressed syllables
-- ttsCorrect is a TTS-friendly version: lowercase, spaces instead of hyphens, readable by speech synthesis
+- ttsCorrect MUST be the actual word itself (e.g. "epitome", "segue") - TTS will pronounce it correctly
 - incorrectPronunciations must have exactly 2 common wrong pronunciations
-- ttsIncorrect is an array of TTS-friendly versions matching incorrectPronunciations order
+- ttsIncorrect is an array of phonetic-friendly text that produces the WRONG pronunciation when read by TTS
+  - Use word splits or similar-sounding words (e.g. "epi tome" for wrong 3-syllable pronunciation)
+  - This should sound like the wrong pronunciation, NOT like the correct one
 - ipaCorrect should be IPA notation for reference
 - explanation should explain why the word is commonly mispronounced
 - Include words from various categories: academic, food, science, everyday words
 
 Return ONLY valid JSON array, no other text."""
+

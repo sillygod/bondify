@@ -10,6 +10,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
+      - /app/.venv  # Preserve built .venv, don't overwrite with host
       - backend_data:/app/data
     environment:
       - APP_NAME=English Learning API

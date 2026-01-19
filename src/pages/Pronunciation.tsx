@@ -7,6 +7,7 @@ import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
 import { useNavigate } from "react-router-dom";
 import { usePronunciationQuestions, PronunciationQuestion as ApiPronunciationQuestion } from "@/hooks/useGameQuestions";
+import { speak, stopSpeech } from "@/lib/api/tts";
 
 type GameState = "ready" | "playing" | "showingResult" | "ended";
 
@@ -26,6 +27,7 @@ const Pronunciation = () => {
   const [streak, setStreak] = useState(0);
   const [userAnswer, setUserAnswer] = useState<boolean | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const currentQuestion = questions[currentIndex];
   const totalQuestions = 10;
@@ -48,43 +50,25 @@ const Pronunciation = () => {
     wordsLearned: currentIndex,
   });
 
-  const speakPronunciation = useCallback((pronunciation: string) => {
-    if (!pronunciation) return;
-    if (!("speechSynthesis" in window)) return;
-
-    // Prevent queued/overlapping utterances
-    window.speechSynthesis.cancel();
-
-    // Respelling strings use hyphens for syllables; spaces sound more natural.
-    const text = pronunciation.replace(/[–-]/g, " ").replace(/\s+/g, " ").trim();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.7;
-    window.speechSynthesis.speak(utterance);
-  }, []);
-
-  // Speak the actual word (TTS can't interpret respelling notation)
-  const speakWord = useCallback((word: string) => {
-    if (!word) return;
-    if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(word);
-    utterance.rate = 0.8;
-    window.speechSynthesis.speak(utterance);
+  // Speak using backend TTS API (with fallback to browser)
+  const speakText = useCallback((text: string) => {
+    if (!text) return;
+    setIsSpeaking(true);
+    speak(text, () => setIsSpeaking(false));
   }, []);
 
   const speakShownPronunciation = useCallback(() => {
     if (!currentQuestion) return;
     // Use TTS-friendly text if available, fallback to respelling
-    speakPronunciation(currentQuestion.shownTTS || currentQuestion.shownPronunciation);
-  }, [currentQuestion, speakPronunciation]);
+    speakText(currentQuestion.shownTTS || currentQuestion.shownPronunciation);
+  }, [currentQuestion, speakText]);
 
   const speakCorrectPronunciation = useCallback(() => {
     if (!currentQuestion) return;
     // Use TTS-friendly text if available, fallback to respelling
     const tts = currentQuestion.word.ttsCorrect || currentQuestion.word.correctPronunciation;
-    speakPronunciation(tts);
-  }, [currentQuestion, speakPronunciation]);
+    speakText(tts);
+  }, [currentQuestion, speakText]);
 
   // Auto-play the pronunciation when a new question appears
   useEffect(() => {
