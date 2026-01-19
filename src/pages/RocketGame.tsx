@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useRocketQuestions, RocketQuestion } from "@/hooks/useGameQuestions";
 import { useGameProgress } from "@/hooks/useGameProgress";
+import { useGameSRS } from "@/hooks/useGameSRS";
 
 // Fallback mock data for when API is unavailable
 import { vocabularyData, getRandomSynonyms } from "@/data/vocabulary";
@@ -397,6 +398,9 @@ const RocketGame = () => {
   // TanStack Query hook for fetching questions
   const { refetch: fetchQuestions, isFetching: isLoadingQuestions } = useRocketQuestions(TOTAL_QUESTIONS);
 
+  // Game-SRS integration
+  const { missedWords, recordMissedWord, resetMissedWords } = useGameSRS();
+
   // Hide header/sidebar when playing
   useEffect(() => {
     setHideHeader(gameState === "playing");
@@ -454,9 +458,10 @@ const RocketGame = () => {
       setRocketY(0);
       setIsBoosting(false);
       resetProgress(); // Reset progress tracking for new game
+      resetMissedWords(); // Reset missed words for new game
       setGameState("playing");
     }
-  }, [loadQuestions, resetProgress]);
+  }, [loadQuestions, resetProgress, resetMissedWords]);
 
   // Continuous descent animation
   useEffect(() => {
@@ -519,6 +524,9 @@ const RocketGame = () => {
     } else {
       setFuel((prev) => prev - FUEL_LOSS);
       setStreak(0);
+
+      // Record missed word for SRS
+      recordMissedWord(currentQuestion.word, currentQuestion.meaning);
 
       // Screen shake on wrong answer
       setScreenShake(true);
@@ -787,6 +795,27 @@ const RocketGame = () => {
                 <p className="text-xs text-muted-foreground">Progress</p>
               </div>
             </div>
+
+            {/* Missed Words - Added to SRS */}
+            {missedWords.length > 0 && (
+              <div className="mb-6 p-4 rounded-xl bg-secondary/30 border border-border/50 text-left">
+                <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <span className="text-primary">📝</span>
+                  Words added to SRS ({missedWords.length}):
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {missedWords.map((m) => (
+                    <span
+                      key={m.word}
+                      className="px-3 py-1 text-sm rounded-lg bg-primary/20 border border-primary/30"
+                    >
+                      {m.word}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-4 justify-center">
               <Button
                 variant="outline"
@@ -802,6 +831,15 @@ const RocketGame = () => {
                 <RefreshCw className="w-4 h-4" />
                 Play Again
               </Button>
+              {missedWords.length > 0 && (
+                <Button
+                  onClick={() => navigate("/srs-review")}
+                  variant="outline"
+                  className="rounded-xl border-primary/50 text-primary hover:bg-primary/10"
+                >
+                  Review Now
+                </Button>
+              )}
             </div>
           </motion.div>
         )}

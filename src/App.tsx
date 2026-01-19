@@ -28,6 +28,7 @@ import Settings from "./pages/Settings";
 import Attention from "./pages/Attention";
 import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
+import SRSReview from "./pages/SRSReview";
 import NotFound from "./pages/NotFound";
 
 // Admin imports
@@ -77,6 +78,7 @@ const App = () => (
               <Route path="/attention" element={<Attention />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/srs-review" element={<SRSReview />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
 import { useRecallQuestions, RecallQuestion } from "@/hooks/useGameQuestions";
+import { useGameSRS } from "@/hooks/useGameSRS";
 
 // Fallback mock data for when API is unavailable
 import { vocabularyData } from "@/data/vocabulary";
@@ -42,6 +43,9 @@ const RecallGame = () => {
     score,
     wordsLearned: correctAnswers,
   });
+
+  // Game-SRS integration
+  const { missedWords, recordMissedWord, resetMissedWords } = useGameSRS();
 
   const initGame = useCallback(async () => {
     setGameState("loading");
@@ -79,8 +83,9 @@ const RecallGame = () => {
     setScore(0);
     setCorrectAnswers(0);
     resetProgress();
+    resetMissedWords();
     setGameState("playing");
-  }, [resetProgress, fetchQuestions]);
+  }, [resetProgress, resetMissedWords, fetchQuestions]);
 
   const currentWord = questions[currentQuestionIndex];
 
@@ -101,6 +106,9 @@ const RecallGame = () => {
     if (correct) {
       setScore((prev) => prev + (showHint ? 50 : 100));
       setCorrectAnswers((prev) => prev + 1);
+    } else {
+      // Record missed word for SRS
+      recordMissedWord(currentWord.word, currentWord.meaning);
     }
 
     setTimeout(() => {
@@ -117,6 +125,10 @@ const RecallGame = () => {
 
   const handleSkip = () => {
     setIsCorrect(false);
+    // Record skipped word for SRS
+    if (currentWord) {
+      recordMissedWord(currentWord.word, currentWord.meaning);
+    }
     setTimeout(() => {
       if (currentQuestionIndex + 1 >= TOTAL_QUESTIONS) {
         setGameState("ended");
@@ -351,6 +363,27 @@ const RecallGame = () => {
                 <p className="text-xs text-muted-foreground">Accuracy</p>
               </div>
             </div>
+
+            {/* Missed Words - Added to SRS */}
+            {missedWords.length > 0 && (
+              <div className="mb-6 p-4 rounded-xl bg-secondary/30 border border-border/50 text-left">
+                <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <span className="text-primary">📝</span>
+                  Words added to SRS ({missedWords.length}):
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {missedWords.map((m) => (
+                    <span
+                      key={m.word}
+                      className="px-3 py-1 text-sm rounded-lg bg-primary/20 border border-primary/30"
+                    >
+                      {m.word}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-4 justify-center">
               <Button
                 variant="outline"
@@ -365,6 +398,15 @@ const RecallGame = () => {
               >
                 Play Again
               </Button>
+              {missedWords.length > 0 && (
+                <Button
+                  onClick={() => navigate("/srs-review")}
+                  variant="outline"
+                  className="rounded-xl border-primary/50 text-primary hover:bg-primary/10"
+                >
+                  Review Now
+                </Button>
+              )}
             </div>
           </motion.div>
         )}

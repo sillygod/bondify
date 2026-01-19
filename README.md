@@ -42,6 +42,8 @@ An AI-powered English learning application with vocabulary games, conversation p
 - Google Gemini API for AI features
 - SQLite (dev) / PostgreSQL (prod)
 
+https://github.com/OHF-Voice/piper1-gpl/blob/main/docs/CLI.md
+
 ## Project Structure
 
 ```

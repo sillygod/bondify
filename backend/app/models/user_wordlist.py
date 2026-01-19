@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Text, UniqueConstraint
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel
@@ -25,6 +25,11 @@ class UserWordlist(BaseModel):
     review_count = Column(Integer, default=0, nullable=False)
     mastery_level = Column(Integer, default=0, nullable=False)  # 0-100
     notes = Column(Text, nullable=True)  # User's personal notes
+
+    # FSRS (Free Spaced Repetition Scheduler) fields
+    fsrs_card_json = Column(Text, nullable=True)  # Serialized FSRS Card object
+    fsrs_due = Column(DateTime, nullable=True, index=True)  # Next review datetime
+    fsrs_state = Column(String(20), nullable=True)  # New, Learning, Review, Relearning
 
     # Relationships
     user = relationship("User", back_populates="wordlist")

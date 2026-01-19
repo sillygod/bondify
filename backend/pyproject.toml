@@ -23,6 +23,7 @@ dependencies = [
     "alembic>=1.18.1",
     "greenlet>=3.3.0",
     "piper-tts>=1.2.0",
+    "fsrs>=4.0.0",
 ]
 
 [project.optional-dependencies]

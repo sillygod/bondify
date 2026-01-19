@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  RefreshCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -22,6 +23,7 @@ interface SidebarProps {
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { icon: RefreshCcw, label: "SRS Review", path: "/srs-review" },
   { icon: FileText, label: "Rephrase Analyzer", path: "/rephrase-analyzer" },
   { icon: BookOpen, label: "Word List", path: "/word-list" },
 ];
@@ -45,7 +47,7 @@ export const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }: Sideba
       {/* Sidebar */}
       <motion.aside
         initial={false}
-        animate={{ 
+        animate={{
           x: isOpen ? 0 : -280,
           width: collapsed ? 80 : 280
         }}
@@ -79,7 +81,7 @@ export const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }: Sideba
               </motion.div>
             )}
           </div>
-          
+
           {/* Collapse toggle - Desktop */}
           <button
             onClick={onToggleCollapse}
@@ -94,7 +96,7 @@ export const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }: Sideba
               <ChevronLeft className="w-4 h-4" />
             )}
           </button>
-          
+
           {/* Mobile close button */}
           <button
             onClick={onClose}
