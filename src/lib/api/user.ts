@@ -12,6 +12,8 @@ export interface UserProfile {
   learningLevel: 'beginner' | 'intermediate' | 'advanced';
   soundEnabled: boolean;
   notificationsEnabled: boolean;
+  reminderEnabled: boolean;
+  reminderTime: string | null;
   createdAt: string;
 }
 
@@ -20,6 +22,8 @@ export interface UserUpdateRequest {
   learning_level?: 'beginner' | 'intermediate' | 'advanced';
   sound_enabled?: boolean;
   notifications_enabled?: boolean;
+  reminder_enabled?: boolean;
+  reminder_time?: string;
 }
 
 /**
@@ -42,3 +46,4 @@ export default {
   getCurrentUser,
   updateUser,
 };
+

@@ -20,6 +20,7 @@ from app.api.wordlist import router as wordlist_router
 from app.api.notifications import router as notifications_router
 from app.api.tts import router as tts_router
 from app.api.srs import router as srs_router
+from app.api.reading import router as reading_router
 
 
 @asynccontextmanager
@@ -139,3 +140,4 @@ app.include_router(wordlist_router)
 app.include_router(notifications_router)
 app.include_router(tts_router)
 app.include_router(srs_router)
+app.include_router(reading_router)

@@ -10,6 +10,7 @@ import {
   ChevronRight,
   FileText,
   RefreshCcw,
+  BookMarked,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -24,6 +25,7 @@ interface SidebarProps {
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: RefreshCcw, label: "SRS Review", path: "/srs-review" },
+  { icon: BookMarked, label: "Reading Mode", path: "/reading" },
   { icon: FileText, label: "Rephrase Analyzer", path: "/rephrase-analyzer" },
   { icon: BookOpen, label: "Word List", path: "/word-list" },
 ];

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, Volume2, VolumeX, GraduationCap, Save, Loader2 } from "lucide-react";
+import { User, Volume2, VolumeX, GraduationCap, Save, Loader2, Bell, Clock } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,10 @@ interface UserSettings {
     enabled: boolean;
     notifications: boolean;
   };
+  reminder: {
+    enabled: boolean;
+    time: string;
+  };
   learningLevel: "beginner" | "intermediate" | "advanced";
 }
 
@@ -31,6 +35,10 @@ const defaultSettings: UserSettings = {
   sound: {
     enabled: true,
     notifications: true,
+  },
+  reminder: {
+    enabled: false,
+    time: "09:00",
   },
   learningLevel: "intermediate",
 };
@@ -63,6 +71,10 @@ const Settings = () => {
               enabled: user.soundEnabled,
               notifications: user.notificationsEnabled,
             },
+            reminder: {
+              enabled: user.reminderEnabled,
+              time: user.reminderTime || "09:00",
+            },
             learningLevel: user.learningLevel,
           });
         } catch (error) {
@@ -82,7 +94,7 @@ const Settings = () => {
 
   const saveSettings = async () => {
     setIsSaving(true);
-    
+
     // Save to localStorage
     localStorage.setItem("lexicon-settings", JSON.stringify(settings));
 
@@ -94,6 +106,8 @@ const Settings = () => {
           learning_level: settings.learningLevel,
           sound_enabled: settings.sound.enabled,
           notifications_enabled: settings.sound.notifications,
+          reminder_enabled: settings.reminder.enabled,
+          reminder_time: settings.reminder.time,
         });
       } catch (error) {
         console.error("Error saving settings to API:", error);
@@ -253,6 +267,66 @@ const Settings = () => {
           </Card>
         </motion.div>
 
+        {/* Daily Reminder Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+        >
+          <Card className="glass-card border-border/30">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-neon-orange/20 flex items-center justify-center">
+                  <Bell className="w-5 h-5 text-neon-orange" />
+                </div>
+                <div>
+                  <CardTitle>Daily Reminder</CardTitle>
+                  <CardDescription>Get reminded to study every day</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Enable Daily Reminder</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Receive a reminder to study at your preferred time
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.reminder.enabled}
+                  onCheckedChange={(checked) =>
+                    updateSettings({
+                      reminder: { ...settings.reminder, enabled: checked },
+                    })
+                  }
+                />
+              </div>
+              {settings.reminder.enabled && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Reminder Time
+                  </Label>
+                  <Input
+                    type="time"
+                    value={settings.reminder.time}
+                    onChange={(e) =>
+                      updateSettings({
+                        reminder: { ...settings.reminder, time: e.target.value },
+                      })
+                    }
+                    className="bg-secondary/50 border-border/30 w-40"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    You'll receive a notification at this time to remind you to study
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
         {/* Learning Level Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -286,11 +360,10 @@ const Settings = () => {
               >
                 <Label
                   htmlFor="beginner"
-                  className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 cursor-pointer transition-all ${
-                    settings.learningLevel === "beginner"
-                      ? "border-primary bg-primary/10"
-                      : "border-border/30 hover:border-border/50"
-                  }`}
+                  className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 cursor-pointer transition-all ${settings.learningLevel === "beginner"
+                    ? "border-primary bg-primary/10"
+                    : "border-border/30 hover:border-border/50"
+                    }`}
                 >
                   <RadioGroupItem value="beginner" id="beginner" className="sr-only" />
                   <div className="text-3xl">🌱</div>
@@ -304,11 +377,10 @@ const Settings = () => {
 
                 <Label
                   htmlFor="intermediate"
-                  className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 cursor-pointer transition-all ${
-                    settings.learningLevel === "intermediate"
-                      ? "border-primary bg-primary/10"
-                      : "border-border/30 hover:border-border/50"
-                  }`}
+                  className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 cursor-pointer transition-all ${settings.learningLevel === "intermediate"
+                    ? "border-primary bg-primary/10"
+                    : "border-border/30 hover:border-border/50"
+                    }`}
                 >
                   <RadioGroupItem value="intermediate" id="intermediate" className="sr-only" />
                   <div className="text-3xl">🌿</div>
@@ -322,11 +394,10 @@ const Settings = () => {
 
                 <Label
                   htmlFor="advanced"
-                  className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 cursor-pointer transition-all ${
-                    settings.learningLevel === "advanced"
-                      ? "border-primary bg-primary/10"
-                      : "border-border/30 hover:border-border/50"
-                  }`}
+                  className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 cursor-pointer transition-all ${settings.learningLevel === "advanced"
+                    ? "border-primary bg-primary/10"
+                    : "border-border/30 hover:border-border/50"
+                    }`}
                 >
                   <RadioGroupItem value="advanced" id="advanced" className="sr-only" />
                   <div className="text-3xl">🌳</div>

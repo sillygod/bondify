@@ -33,11 +33,23 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { stats, isLoading } = useStats();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => tokenManager.isAuthenticated());
 
-  // Re-check auth state whenever location changes (e.g., after login redirect)
+  // Re-check auth state whenever location changes or component mounts
   useEffect(() => {
-    setIsAuthenticated(tokenManager.isAuthenticated());
+    const checkAuth = () => setIsAuthenticated(tokenManager.isAuthenticated());
+    checkAuth();
+
+    // Listen for storage changes (when tokens are saved in other tabs or after login)
+    window.addEventListener('storage', checkAuth);
+
+    // Also check periodically (handles same-tab token updates)
+    const interval = setInterval(checkAuth, 1000);
+
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+      clearInterval(interval);
+    };
   }, [location.key]);
 
   const handleWordClick = (word: string) => {
@@ -205,6 +217,14 @@ const Dashboard = () => {
             path="/transitions"
             color="orange"
             delay={0.9}
+          />
+          <GameCard
+            icon={Headphones}
+            title="Shadowing Practice"
+            description="Follow along and practice pronunciation with daily sentences"
+            path="/shadowing"
+            color="pink"
+            delay={1.0}
           />
         </div>
       </section>

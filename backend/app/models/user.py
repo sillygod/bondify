@@ -21,6 +21,8 @@ class User(BaseModel):
     )
     sound_enabled = Column(Boolean, default=True, nullable=False)
     notifications_enabled = Column(Boolean, default=True, nullable=False)
+    reminder_enabled = Column(Boolean, default=False, nullable=False)
+    reminder_time = Column(String(5), default="09:00", nullable=True)  # HH:MM format
 
     # Relationships
     progress = relationship("UserProgress", back_populates="user", cascade="all, delete-orphan")

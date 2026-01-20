@@ -29,6 +29,8 @@ import Attention from "./pages/Attention";
 import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
 import SRSReview from "./pages/SRSReview";
+import ReadingMode from "./pages/ReadingMode";
+import ShadowingGame from "./pages/ShadowingGame";
 import NotFound from "./pages/NotFound";
 
 // Admin imports
@@ -79,6 +81,8 @@ const App = () => (
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/srs-review" element={<SRSReview />} />
+              <Route path="/reading" element={<ReadingMode />} />
+              <Route path="/shadowing" element={<ShadowingGame />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

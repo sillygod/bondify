@@ -8,6 +8,7 @@ from app.models.vocabulary_cache import VocabularyCache
 from app.models.game_question import GameQuestion
 from app.models.user_wordlist import UserWordlist
 from app.models.notification import Notification
+from app.models.reading import ReadingArticle
 
 __all__ = [
     "BaseModel",
@@ -20,4 +21,6 @@ __all__ = [
     "GameQuestion",
     "UserWordlist",
     "Notification",
+    "ReadingArticle",
 ]
+

@@ -121,6 +121,21 @@ class NotificationService:
             message=f"{words_count} new {word_text} added to your word list.",
         )
 
+    async def create_daily_reminder(
+        self, user_id: int, due_words_count: int = 0
+    ) -> Notification:
+        """Create daily study reminder notification."""
+        if due_words_count > 0:
+            message = f"You have {due_words_count} words due for review today. Time to practice!"
+        else:
+            message = "Time for your daily English practice! Keep your streak going."
+        return await self.create(
+            user_id=user_id,
+            notification_type="reminder",
+            title="Daily Study Reminder",
+            message=message,
+        )
+
     async def broadcast(
         self,
         notification_type: str,

@@ -14,6 +14,8 @@ class UserBase(BaseModel):
     learning_level: Literal["beginner", "intermediate", "advanced"] = "intermediate"
     sound_enabled: bool = True
     notifications_enabled: bool = True
+    reminder_enabled: bool = False
+    reminder_time: str | None = "09:00"  # HH:MM format
 
 
 class UserCreate(UserBase):
@@ -29,6 +31,8 @@ class UserUpdate(BaseModel):
     learning_level: Literal["beginner", "intermediate", "advanced"] | None = None
     sound_enabled: bool | None = None
     notifications_enabled: bool | None = None
+    reminder_enabled: bool | None = None
+    reminder_time: str | None = Field(None, pattern=r"^([01]\d|2[0-3]):([0-5]\d)$")  # HH:MM
 
 
 class UserResponse(BaseModel):
@@ -40,6 +44,8 @@ class UserResponse(BaseModel):
     learning_level: Literal["beginner", "intermediate", "advanced"]
     sound_enabled: bool
     notifications_enabled: bool
+    reminder_enabled: bool
+    reminder_time: str | None
     created_at: datetime
 
     class Config:
@@ -55,6 +61,8 @@ class UserProfileResponse(BaseModel):
     learningLevel: Literal["beginner", "intermediate", "advanced"]
     soundEnabled: bool
     notificationsEnabled: bool
+    reminderEnabled: bool
+    reminderTime: str | None
     createdAt: str
 
     @classmethod
@@ -67,5 +75,7 @@ class UserProfileResponse(BaseModel):
             learningLevel=user.learning_level,
             soundEnabled=user.sound_enabled,
             notificationsEnabled=user.notifications_enabled,
+            reminderEnabled=user.reminder_enabled,
+            reminderTime=user.reminder_time,
             createdAt=user.created_at.isoformat(),
         )
