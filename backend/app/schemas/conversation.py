@@ -1,6 +1,6 @@
 """Pydantic schemas for conversation API."""
 
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel, Field
 
@@ -20,6 +20,9 @@ class ConversationStartRequest(BaseModel):
     target_words: Optional[list[str]] = Field(
         None, description="Vocabulary words to practice during conversation"
     )
+    scenario: Optional[str] = Field(
+        None, description="Scenario ID for role-play mode (e.g., 'job_interview', 'restaurant')"
+    )
 
 
 class ConversationStartResponse(BaseModel):
@@ -29,6 +32,10 @@ class ConversationStartResponse(BaseModel):
     opening_message: str = Field(..., description="Opening message from the assistant")
     topic: Optional[str] = Field(None, description="The conversation topic")
     target_words: Optional[list[str]] = Field(None, description="Words to practice")
+    scenario: Optional[str] = Field(None, description="Active scenario ID if in role-play mode")
+    scenario_name: Optional[str] = Field(None, description="Human-readable scenario name")
+    user_role: Optional[str] = Field(None, description="User's role in the scenario")
+    user_goal: Optional[str] = Field(None, description="User's goal in the scenario")
 
 
 class ConversationMessageRequest(BaseModel):
@@ -71,3 +78,22 @@ class ConversationFeedbackResponse(BaseModel):
 
     feedback: str = Field(..., description="Feedback summary for the conversation")
     session_id: str = Field(..., description="Session ID")
+
+
+# Scenario schemas
+class ScenarioInfo(BaseModel):
+    """Information about a conversation scenario."""
+
+    id: str = Field(..., description="Unique scenario identifier")
+    name: str = Field(..., description="Human-readable scenario name")
+    role: str = Field(..., description="AI's role in the scenario")
+    userRole: str = Field(..., description="User's role in the scenario")
+    userGoal: str = Field(..., description="User's goal to achieve")
+    vocabulary: List[str] = Field(..., description="Scenario-specific vocabulary words")
+
+
+class ScenariosListResponse(BaseModel):
+    """Response with list of available scenarios."""
+
+    scenarios: List[ScenarioInfo]
+

@@ -4,7 +4,6 @@ from fastapi import APIRouter, HTTPException
 
 from app.api.deps import CurrentUser, DbSession
 from app.schemas.notification import (
-    BroadcastRequest,
     NotificationListResponse,
     NotificationResponse,
     UnreadCountResponse,
@@ -87,21 +86,5 @@ async def delete_notification(
     return {"success": True}
 
 
-@router.post("/broadcast")
-async def broadcast_notification(
-    request: BroadcastRequest,
-    db: DbSession,
-) -> dict:
-    """Broadcast a notification to multiple users (admin only).
-    
-    Note: In production, add proper admin authentication check here.
-    """
-    service = NotificationService(db)
-    count = await service.broadcast(
-        notification_type=request.type,
-        title=request.title,
-        message=request.message,
-        user_ids=request.user_ids,
-    )
-    return {"success": True, "notificationsSent": count}
+
 

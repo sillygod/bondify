@@ -77,7 +77,6 @@
 @layer components {
   .glass-card {
     @apply bg-card/60 backdrop-blur-xl border border-border/30 rounded-2xl;
-    box-shadow: 0 8px 32px hsl(260 30% 6% / 0.4);
   }
 
   .neon-glow {
@@ -118,17 +117,38 @@
   }
 
   @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
   }
 
   @keyframes pulse-glow {
-    0%, 100% { box-shadow: var(--glow-purple); }
-    50% { box-shadow: 0 0 40px hsl(270 100% 65% / 0.8); }
+
+    0%,
+    100% {
+      box-shadow: var(--glow-purple);
+    }
+
+    50% {
+      box-shadow: 0 0 40px hsl(270 100% 65% / 0.8);
+    }
   }
 
   @keyframes rocket-hover {
-    0%, 100% { transform: translateY(0) rotate(-45deg); }
-    50% { transform: translateY(-5px) rotate(-45deg); }
+
+    0%,
+    100% {
+      transform: translateY(0) rotate(-45deg);
+    }
+
+    50% {
+      transform: translateY(-5px) rotate(-45deg);
+    }
   }
 }

@@ -1,15 +1,17 @@
 """Vocabulary API endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
-from app.llm.factory import LLMServiceError
 from app.services.vocabulary_service import VocabularyService
 from app.schemas.vocabulary import (
     VocabularyLookupRequest,
     VocabularyLookupResponse,
 )
+from app.database import get_db
+from app.llm.factory import LLMFactory, LLMServiceError
 
 router = APIRouter(prefix="/api/vocabulary", tags=["vocabulary"])
 
@@ -18,6 +20,9 @@ router = APIRouter(prefix="/api/vocabulary", tags=["vocabulary"])
 async def lookup_word(
     request: VocabularyLookupRequest,
     db: AsyncSession = Depends(get_db),
+    provider: Optional[str] = Header(None, alias="X-Bondify-AI-Provider"),
+    api_key: Optional[str] = Header(None, alias="X-Bondify-AI-Key"),
+    model: Optional[str] = Header(None, alias="X-Bondify-AI-Model"),
 ):
     """
     Look up comprehensive information about a word.
@@ -31,10 +36,18 @@ async def lookup_word(
     - Common mistakes to avoid
 
     Response includes 'source' field: "cache" (from DB) or "ai" (fresh lookup).
+    
+    Supports BYOK (Bring Your Own Key) via X-Bondify-AI-* headers.
     """
     try:
         service = VocabularyService(db)
-        result, source = await service.lookup_word(request.word)
+        
+        # If user provides custom API key, create LLM instance (BYOK)
+        custom_llm = None
+        if api_key:
+            custom_llm = LLMFactory.create(provider=provider, api_key=api_key, model=model)
+        
+        result, source = await service.lookup_word(request.word, custom_llm=custom_llm)
 
         # Add source info to response
         response_data = {**result, "source": source}
@@ -67,11 +80,3 @@ async def lookup_word(
                 "code": "INTERNAL_ERROR",
             },
         )
-
-
-@router.get("/cache-stats")
-async def get_cache_stats(db: AsyncSession = Depends(get_db)):
-    """Get vocabulary cache statistics."""
-    service = VocabularyService(db)
-    return await service.get_cache_stats()
-

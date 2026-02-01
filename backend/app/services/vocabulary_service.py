@@ -7,7 +7,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.vocabulary_cache import VocabularyCache
-from app.llm.vocabulary_agent import get_vocabulary_agent
 
 
 class VocabularyService:
@@ -16,12 +15,13 @@ class VocabularyService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def lookup_word(self, word: str) -> Tuple[dict, str]:
+    async def lookup_word(self, word: str, custom_llm=None) -> Tuple[dict, str]:
         """
         Look up a word, using cache if available.
 
         Args:
             word: The word to look up
+            custom_llm: Optional custom LLM instance (for BYOK)
 
         Returns:
             Tuple of (word definition dict, source: "cache" or "ai")
@@ -37,8 +37,18 @@ class VocabularyService:
             return json.loads(cached.definition_json), "cache"
 
         # Cache miss - call AI
-        agent = get_vocabulary_agent()
-        result = await agent.lookup_word(normalized_word)
+        from app.llm.vocabulary_agent import VocabularyAgent
+        
+        if custom_llm:
+            # Use user-provided LLM (BYOK - no usage logging)
+            agent = VocabularyAgent(llm=custom_llm)
+            result = await agent.lookup_word(normalized_word)
+        else:
+            # Use DB-configured provider with usage logging
+            from app.llm.factory import LLMContext
+            async with LLMContext(self.db, endpoint="vocabulary_lookup") as ctx:
+                agent = VocabularyAgent(llm=ctx.llm)
+                result = await agent.lookup_word(normalized_word)
 
         # Save to cache
         await self._save_to_cache(normalized_word, result)

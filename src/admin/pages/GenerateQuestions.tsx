@@ -8,49 +8,46 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GAME_TYPES } from "../constants";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 export const GenerateQuestions = () => {
     const [selectedType, setSelectedType] = useState<string>("clarity");
     const [count, setCount] = useState<number>(5);
+    const [difficulty, setDifficulty] = useState<string>("medium");
     const [loading, setLoading] = useState(false);
+    const [generatedCount, setGeneratedCount] = useState<number>(0);
+    const [error, setError] = useState<string | null>(null);
     const [result, setResult] = useState<{ success: boolean; message: string; data?: any } | null>(null);
 
     const handleGenerate = async () => {
         setLoading(true);
+        setError(null);
+        setGeneratedCount(0);
         setResult(null);
 
         try {
-            const res = await fetch(`${API_BASE}/api/game-questions/generate`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    game_type: selectedType,
-                    count: count,
-                    difficulty: "medium",
-                }),
+            const res = await api.post<any>('/api/admin/questions/generate', {
+                game_type: selectedType,
+                count: count,
+                difficulty: difficulty
             });
 
-            const data = await res.json();
-
-            if (res.ok) {
-                setResult({
-                    success: true,
-                    message: `Successfully generated ${data.generated} questions!`,
-                    data: data.questions,
-                });
-            } else {
-                setResult({
-                    success: false,
-                    message: data.detail?.detail || "Generation failed",
-                });
-            }
-        } catch (error) {
+            setGeneratedCount(res.generated);
+            setResult({
+                success: true,
+                message: `Successfully generated ${res.generated} questions!`,
+                data: res.questions
+            });
+            toast.success(`Successfully generated ${res.generated} questions!`);
+        } catch (err: any) {
+            console.error(err);
+            setError(err.message || "Failed to generate questions");
             setResult({
                 success: false,
-                message: "Network error. Please try again.",
+                message: err.message || "Failed to generate questions. Please try again."
             });
+            toast.error("Failed to generate questions");
         } finally {
             setLoading(false);
         }

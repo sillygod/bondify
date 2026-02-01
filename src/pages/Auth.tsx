@@ -8,10 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { login, register } from "@/lib/api/auth";
+import { useStats } from "@/contexts/StatsContext";
 
 const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login: contextLogin } = useStats();
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -25,8 +27,9 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
+      let response;
       if (isLogin) {
-        await login({
+        response = await login({
           email: formData.email,
           password: formData.password,
         });
@@ -35,21 +38,22 @@ const Auth = () => {
           description: "You have successfully logged in.",
         });
       } else {
-        await register({
+        response = await register({
           email: formData.email,
           password: formData.password,
           display_name: formData.displayName || undefined,
         });
         toast({
           title: "Account created!",
-          description: "Welcome to Lexicon. Let's start learning!",
+          description: "Welcome to Bondify. Let's start learning!",
         });
       }
+      contextLogin(response.access_token, response.refresh_token);
       navigate("/");
     } catch (error: any) {
       // Handle different error formats
       let errorMessage = "Something went wrong. Please try again.";
-      
+
       if (error.detail) {
         // Check if detail is an array (Pydantic validation errors)
         if (Array.isArray(error.detail)) {
@@ -64,7 +68,7 @@ const Auth = () => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       toast({
         title: "Error",
         description: errorMessage,
@@ -96,9 +100,9 @@ const Auth = () => {
             className="inline-flex items-center gap-2 mb-4"
           >
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-neon-cyan flex items-center justify-center">
-              <span className="text-2xl font-display font-bold">L</span>
+              <span className="text-2xl font-display font-bold">B</span>
             </div>
-            <span className="text-2xl font-display font-bold">LEXICON</span>
+            <span className="text-2xl font-display font-bold">BONDIFY</span>
           </motion.div>
           <p className="text-muted-foreground">Learn English with AI</p>
         </div>

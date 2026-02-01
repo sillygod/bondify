@@ -12,6 +12,7 @@ import {
 import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
 import { useNavigate } from "react-router-dom";
+import { Footer } from "@/components/layout/Footer";
 
 type GameState = "ready" | "playing" | "showingResult" | "ended";
 
@@ -353,6 +354,9 @@ const Rephrase = () => {
                   Play Again
                 </Button>
               </div>
+
+              {/* Buy me a coffee - show when score is good */}
+              {score >= 6 && <Footer minimal className="mt-6" />}
             </div>
           </motion.div>
         )}

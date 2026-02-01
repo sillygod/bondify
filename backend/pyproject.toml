@@ -1,6 +1,7 @@
 [project]
 name = "english-learning-api"
 version = "1.0.0"
+license = {text = "MIT"}
 description = "Backend API for English Learning Application"
 readme = "../README.md"
 requires-python = ">=3.11"

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Bell, Send, Users, Loader2, CheckCircle } from "lucide-react";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+import { api } from "@/lib/api";
 
 type NotificationType = "achievement" | "streak" | "wordlist" | "reminder";
 
@@ -28,24 +27,15 @@ export const NotificationManager = () => {
         setResult(null);
 
         try {
-            const response = await fetch(`${API_BASE}/api/notifications/broadcast`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    type: form.type,
-                    title: form.title,
-                    message: form.message,
-                    user_ids: null, // Send to all users
-                }),
+            const data = await api.post<any>('/api/admin/notifications/broadcast', {
+                type: form.type,
+                title: form.title,
+                message: form.message,
+                user_ids: null, // Send to all users
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                setResult({ success: true, count: data.notificationsSent });
-                setForm({ type: "reminder", title: "", message: "" });
-            } else {
-                setResult({ success: false, count: 0 });
-            }
+            setResult({ success: true, count: data.notificationsSent });
+            setForm({ type: "reminder", title: "", message: "" });
         } catch (error) {
             console.error("Failed to broadcast:", error);
             setResult({ success: false, count: 0 });
@@ -94,8 +84,8 @@ export const NotificationManager = () => {
                                     type="button"
                                     onClick={() => setForm({ ...form, type: type.value })}
                                     className={`px-4 py-2 rounded-xl border transition-all ${form.type === type.value
-                                            ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400"
-                                            : "bg-[#1a2744] border-[#1a2744] text-gray-400 hover:border-gray-600"
+                                        ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400"
+                                        : "bg-[#1a2744] border-[#1a2744] text-gray-400 hover:border-gray-600"
                                         }`}
                                 >
                                     <span className={form.type === type.value ? type.color : ""}>
@@ -143,8 +133,8 @@ export const NotificationManager = () => {
                     {result && (
                         <div
                             className={`p-4 rounded-xl flex items-center gap-3 ${result.success
-                                    ? "bg-emerald-500/20 text-emerald-400"
-                                    : "bg-red-500/20 text-red-400"
+                                ? "bg-emerald-500/20 text-emerald-400"
+                                : "bg-red-500/20 text-red-400"
                                 }`}
                         >
                             {result.success ? (

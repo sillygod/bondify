@@ -12,56 +12,38 @@ export interface Question {
     [key: string]: any;
 }
 
+// Helper for requests - using shared API client for auth
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
-// Helper for requests
-async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-        headers: {
-            "Content-Type": "application/json",
-            ...options?.headers,
-        },
-        ...options,
-    });
-
-    if (!response.ok) {
-        throw new Error(`API request failed: ${response.statusText}`);
-    }
-
-    return response.json();
-}
+// Re-export api from lib/api but we don't strictly need it if we import directly
+import { api } from '@/lib/api';
 
 /**
- * Fetch questions by game type
+ * Fetch questions by game type (Public/User endpoint)
  */
 export async function getQuestions(gameType: string, limit = 50): Promise<{ questions: Question[] }> {
-    return request<{ questions: Question[] }>(`/api/game-questions/${gameType}?limit=${limit}`);
+    // This endpoint remains public/user accessible for now as it doesn't modify data
+    // But managing them might require admin rights later. For now it points to standard game-questions endpoint
+    return api.get<{ questions: Question[] }>(`/api/game-questions/${gameType}?limit=${limit}`, false);
 }
 
 /**
- * Update review status
+ * Update review status (Admin)
  */
 export async function updateReviewStatus(id: number, reviewed: boolean): Promise<any> {
-    return request(`/api/game-questions/${id}/review?reviewed=${reviewed}`, {
-        method: "PATCH",
-    });
+    return api.patch(`/api/admin/questions/${id}/review?reviewed=${reviewed}`);
 }
 
 /**
- * Delete a question
+ * Delete a question (Admin)
  */
 export async function deleteQuestion(id: number): Promise<{ success: boolean }> {
-    return request<{ success: boolean }>(`/api/game-questions/${id}`, {
-        method: "DELETE",
-    });
+    return api.delete<{ success: boolean }>(`/api/admin/questions/${id}`);
 }
 
 /**
- * Update a question's content
+ * Update a question's content (Admin)
  */
 export async function updateQuestion(id: number, updates: Partial<Question>): Promise<Question> {
-    return request<Question>(`/api/game-questions/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(updates),
-    });
+    return api.patch<Question>(`/api/admin/questions/${id}`, updates);
 }

@@ -8,16 +8,13 @@ import { Progress } from "@/components/ui/progress";
 import { getCurrentUser, UserProfile } from "@/lib/api/user";
 import { getAchievements, LearningStats, Achievement } from "@/lib/api/progress";
 import { useStats } from "@/contexts/StatsContext";
-import { logout } from "@/lib/api/auth";
-import { tokenManager } from "@/lib/api";
+
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, stats, isLoading: isStatsLoading } = useStats();
+  const { user, stats, isLoading: isStatsLoading, isAuthenticated, logout } = useStats();
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [isAchievementsLoading, setIsAchievementsLoading] = useState(true);
-
-  const isAuthenticated = tokenManager.isAuthenticated();
 
   useEffect(() => {
     const loadAchievements = async () => {

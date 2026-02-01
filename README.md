@@ -2,6 +2,8 @@
 
 An AI-powered English learning application with vocabulary games, conversation practice, and progress tracking. Built with React/TypeScript frontend and FastAPI/Python backend, integrated with Google Gemini API.
 
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jgebang)
+
 ## Features
 
 ### Learning Games
@@ -244,8 +246,6 @@ VITE_API_BASE_URL=http://localhost:8000
 ## Development
 
 ### Running Tests
-
-See [TESTING.md](./TESTING.md) for comprehensive testing guide.
 
 ```bash
 # Backend tests

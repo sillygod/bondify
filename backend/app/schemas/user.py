@@ -16,6 +16,7 @@ class UserBase(BaseModel):
     notifications_enabled: bool = True
     reminder_enabled: bool = False
     reminder_time: str | None = "09:00"  # HH:MM format
+    role: Literal["user", "admin"] = "user"
 
 
 class UserCreate(UserBase):
@@ -46,6 +47,7 @@ class UserResponse(BaseModel):
     notifications_enabled: bool
     reminder_enabled: bool
     reminder_time: str | None
+    role: Literal["user", "admin"]
     created_at: datetime
 
     class Config:
@@ -63,6 +65,7 @@ class UserProfileResponse(BaseModel):
     notificationsEnabled: bool
     reminderEnabled: bool
     reminderTime: str | None
+    role: Literal["user", "admin"]
     createdAt: str
 
     @classmethod
@@ -77,5 +80,6 @@ class UserProfileResponse(BaseModel):
             notificationsEnabled=user.notifications_enabled,
             reminderEnabled=user.reminder_enabled,
             reminderTime=user.reminder_time,
+            role=user.role,
             createdAt=user.created_at.isoformat(),
         )

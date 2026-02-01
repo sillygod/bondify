@@ -75,3 +75,17 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 OptionalUser = Annotated[Optional[User], Depends(get_current_user_optional)]
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
+
+async def get_current_admin_user(
+    current_user: CurrentUser,
+) -> User:
+    """
+    Dependency to get the current authenticated user and ensure they are an admin.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user doesn't have enough privileges",
+        )
+    return current_user
+

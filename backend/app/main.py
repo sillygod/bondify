@@ -21,6 +21,9 @@ from app.api.notifications import router as notifications_router
 from app.api.tts import router as tts_router
 from app.api.srs import router as srs_router
 from app.api.reading import router as reading_router
+from app.api.analytics import router as analytics_router
+from app.api.admin import router as admin_router
+from app.api.llm import router as llm_router
 
 
 @asynccontextmanager
@@ -141,3 +144,6 @@ app.include_router(notifications_router)
 app.include_router(tts_router)
 app.include_router(srs_router)
 app.include_router(reading_router)
+app.include_router(analytics_router)
+app.include_router(admin_router)
+app.include_router(llm_router)

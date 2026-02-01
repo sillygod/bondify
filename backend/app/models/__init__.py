@@ -9,6 +9,9 @@ from app.models.game_question import GameQuestion
 from app.models.user_wordlist import UserWordlist
 from app.models.notification import Notification
 from app.models.reading import ReadingArticle
+from app.models.answer_record import AnswerRecord
+from app.models.ai_provider import AIProvider
+from app.models.ai_usage_log import AIUsageLog
 
 __all__ = [
     "BaseModel",
@@ -22,5 +25,8 @@ __all__ = [
     "UserWordlist",
     "Notification",
     "ReadingArticle",
+    "AnswerRecord",
+    "AIProvider",
+    "AIUsageLog",
 ]
 

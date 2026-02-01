@@ -68,3 +68,20 @@ class AchievementsListResponse(BaseModel):
     """List of achievements response."""
 
     achievements: List[AchievementResponse]
+
+
+class ProgressHistoryDay(BaseModel):
+    """Single day in progress history for learning curve."""
+
+    date: str
+    xp: int = Field(ge=0)
+    wordsLearned: int = Field(ge=0)
+    reviews: int = Field(ge=0)
+    accuracy: float = Field(ge=0.0, le=1.0)
+
+
+class ProgressHistoryResponse(BaseModel):
+    """Progress history response for learning curve visualization."""
+
+    data: List[ProgressHistoryDay]
+    totalDays: int = Field(ge=0)

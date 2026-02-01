@@ -115,6 +115,21 @@ export async function apiRequest<T>(
     }
   }
 
+  // Add AI headers from settings
+  try {
+    const savedSettings = localStorage.getItem("lexicon-settings");
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings);
+      if (settings.ai) {
+        if (settings.ai.provider) requestHeaders['X-Bondify-AI-Provider'] = settings.ai.provider;
+        if (settings.ai.apiKey) requestHeaders['X-Bondify-AI-Key'] = settings.ai.apiKey;
+        if (settings.ai.model) requestHeaders['X-Bondify-AI-Model'] = settings.ai.model;
+      }
+    }
+  } catch (e) {
+    // Ignore errors parsing settings
+  }
+
   const requestOptions: RequestInit = {
     method,
     headers: requestHeaders,
@@ -184,6 +199,9 @@ export const api = {
   put: <T>(endpoint: string, body?: unknown, requiresAuth = true) =>
     apiRequest<T>(endpoint, { method: 'PUT', body, requiresAuth }),
 
+  patch: <T>(endpoint: string, body?: unknown, requiresAuth = true) =>
+    apiRequest<T>(endpoint, { method: 'PATCH', body, requiresAuth }),
+
   delete: <T>(endpoint: string, requiresAuth = true) =>
     apiRequest<T>(endpoint, { method: 'DELETE', requiresAuth }),
 
@@ -200,5 +218,19 @@ export async function checkApiHealth(): Promise<boolean> {
     return false;
   }
 }
+
+export interface ModelInfo {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface ModelsListResponse {
+  models: ModelInfo[];
+}
+
+export const getAvailableModels = (provider: string, apiKey: string) => {
+  return api.post<ModelsListResponse>('/api/llm/models', { provider, api_key: apiKey }, false);
+};
 
 export default api;

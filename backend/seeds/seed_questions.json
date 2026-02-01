@@ -1,0 +1,303 @@
+[
+  {
+    "game_type": "clarity",
+    "question_json": "{\"sentence\": \"In the event that you need assistance, please contact support.\", \"wordyPart\": {\"startIndex\": 0, \"text\": \"In the event that\"}, \"options\": [\"If\", \"Should\", \"In a situation where\"], \"correctOption\": \"If\", \"reason\": \"'In the event that' is unnecessarily long. 'If' provides the same meaning more concisely.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "clarity",
+    "question_json": "{\"sentence\": \"The manager asked the employee to repeat again what he had said.\", \"wordyPart\": {\"startIndex\": 32, \"text\": \"repeat again\"}, \"options\": [\"reiterate\", \"repeat\", \"repeat once again\"], \"correctOption\": \"repeat\", \"reason\": \"'Repeat' already implies doing something again, so 'again' is redundant.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "clarity",
+    "question_json": "{\"sentence\": \"The new software is completely and totally user-friendly.\", \"wordyPart\": {\"startIndex\": 20, \"text\": \"completely and totally\"}, \"options\": [\"very\", \"completely\", \"in an absolutely complete manner\"], \"correctOption\": \"completely\", \"reason\": \"'Completely and totally' is redundant. 'Completely' already conveys the full extent.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "clarity",
+    "question_json": "{\"sentence\": \"She made a decision to purchase a brand new car.\", \"wordyPart\": {\"startIndex\": 32, \"text\": \"brand new\"}, \"options\": [\"new\", \"latest\", \"completely brand new\"], \"correctOption\": \"new\", \"reason\": \"'Brand new' is redundant. 'New' conveys the same meaning more concisely.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "clarity",
+    "question_json": "{\"sentence\": \"The reason for the delay was because of unforeseen circumstances.\", \"wordyPart\": {\"startIndex\": 26, \"text\": \"because of\"}, \"options\": [\"due to\", \"that\", \"because as a result of\"], \"correctOption\": \"due to\", \"reason\": \"'The reason...was because' is redundant. Using 'due to' or 'that' is more concise.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "clarity",
+    "question_json": "{\"sentence\": \"He summarized briefly the main points of the lecture.\", \"wordyPart\": {\"startIndex\": 14, \"text\": \"summarized briefly\"}, \"options\": [\"summarized\", \"briefly summarized\", \"gave a brief summarization of\"], \"correctOption\": \"summarized\", \"reason\": \"'Summarized' implies brevity, so 'briefly' is redundant.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "clarity",
+    "question_json": "{\"sentence\": \"The company is currently in the process of developing a new product.\", \"wordyPart\": {\"startIndex\": 16, \"text\": \"in the process of\"}, \"options\": [\"developing\", \"currently developing\", \"actively in the process of\"], \"correctOption\": \"developing\", \"reason\": \"'In the process of' is wordy. 'Developing' is more direct and concise.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "clarity",
+    "question_json": "{\"sentence\": \"It is essential that we give consideration to all options.\", \"wordyPart\": {\"startIndex\": 22, \"text\": \"give consideration to\"}, \"options\": [\"consider\", \"evaluate\", \"provide a level of consideration for\"], \"correctOption\": \"consider\", \"reason\": \"'Give consideration to' is wordy. 'Consider' is more direct.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "clarity",
+    "question_json": "{\"sentence\": \"The final outcome and result of the experiment was unexpected.\", \"wordyPart\": {\"startIndex\": 4, \"text\": \"outcome and result\"}, \"options\": [\"outcome\", \"result\", \"outcome that resulted\"], \"correctOption\": \"outcome\", \"reason\": \"'Outcome and result' are redundant; they mean the same thing. Using just one is sufficient.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "clarity",
+    "question_json": "{\"sentence\": \"The politician spoke in a loud voice about the issues.\", \"wordyPart\": {\"startIndex\": 21, \"text\": \"in a loud voice\"}, \"options\": [\"loudly\", \"vociferously\", \"with a loud tone of voice\"], \"correctOption\": \"loudly\", \"reason\": \"'Spoke in a loud voice' can be simplified to 'spoke loudly'.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "transitions",
+    "question_json": "{\"paragraph\": \"The initial marketing campaign was successful in generating interest. ______, we need to focus on converting leads into paying customers.\", \"options\": [\"Therefore\", \"Furthermore\", \"Nevertheless\", \"Subsequently\"], \"correctOption\": \"Furthermore\", \"reason\": \"'Furthermore' adds additional information to the initial success, indicating the next step.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "transitions",
+    "question_json": "{\"paragraph\": \"We experienced a significant increase in website traffic last month. ______, our sales figures also saw a corresponding rise.\", \"options\": [\"In contrast\", \"As a result\", \"Similarly\", \"In addition\"], \"correctOption\": \"As a result\", \"reason\": \"'As a result' indicates a cause-and-effect relationship between the increased traffic and sales.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "transitions",
+    "question_json": "{\"paragraph\": \"The company's profits have been declining for the past two quarters. ______, we need to implement cost-cutting measures to improve our financial performance.\", \"options\": [\"For example\", \"In conclusion\", \"Therefore\", \"Meanwhile\"], \"correctOption\": \"Therefore\", \"reason\": \"'Therefore' indicates a logical consequence of the declining profits.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "transitions",
+    "question_json": "{\"paragraph\": \"The team worked diligently throughout the week. ______, they were able to complete the project ahead of schedule.\", \"options\": [\"Despite\", \"Consequently\", \"Moreover\", \"Otherwise\"], \"correctOption\": \"Consequently\", \"reason\": \"'Consequently' indicates that the early completion was a result of their hard work.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "transitions",
+    "question_json": "{\"paragraph\": \"We need to conduct thorough market research before launching the new product. ______, we must analyze our competitors' strengths and weaknesses.\", \"options\": [\"Specifically\", \"Conversely\", \"Generally\", \"Initially\"], \"correctOption\": \"Specifically\", \"reason\": \"'Specifically' introduces a more detailed aspect of the market research.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "transitions",
+    "question_json": "{\"paragraph\": \"The first draft of the report was unsatisfactory. ______, the second draft incorporated all the necessary revisions and improvements.\", \"options\": [\"However\", \"Besides\", \"Thus\", \"Indeed\"], \"correctOption\": \"However\", \"reason\": \"'However' shows a contrast between the first and second drafts.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "transitions",
+    "question_json": "{\"paragraph\": \"The new software is user-friendly and efficient. ______, it offers enhanced security features to protect sensitive data.\", \"options\": [\"In other words\", \"Additionally\", \"On the contrary\", \"For instance\"], \"correctOption\": \"Additionally\", \"reason\": \"'Additionally' adds another positive attribute of the software.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "transitions",
+    "question_json": "{\"paragraph\": \"The weather forecast predicted rain for the entire weekend. ______, we decided to postpone the outdoor event.\", \"options\": [\"Regardless\", \"Accordingly\", \"In summary\", \"Besides\"], \"correctOption\": \"Accordingly\", \"reason\": \"'Accordingly' indicates that the postponement was a result of the weather forecast.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "transitions",
+    "question_json": "{\"paragraph\": \"We need to improve communication between departments. ______, misunderstandings and delays will continue to occur.\", \"options\": [\"Otherwise\", \"Furthermore\", \"Therefore\", \"For example\"], \"correctOption\": \"Otherwise\", \"reason\": \"'Otherwise' indicates the negative consequence if communication is not improved.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "transitions",
+    "question_json": "{\"paragraph\": \"The company has a strong commitment to sustainability. ______, it invests heavily in renewable energy sources and eco-friendly practices.\", \"options\": [\"Conversely\", \"To illustrate\", \"Nevertheless\", \"In conclusion\"], \"correctOption\": \"To illustrate\", \"reason\": \"'To illustrate' provides an example of the company's commitment to sustainability.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "diction",
+    "question_json": "{\"sentence\": \"The affect of the new policy was immediately apparent.\", \"highlightedPart\": {\"startIndex\": 4, \"text\": \"affect\"}, \"isCorrect\": false, \"correctVersion\": \"effect\", \"category\": \"vocabulary\", \"explanation\": \"'Effect' is the noun meaning result. 'Affect' is generally used as a verb meaning to influence.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "diction",
+    "question_json": "{\"sentence\": \"There are less people here than I expected.\", \"highlightedPart\": {\"startIndex\": 0, \"text\": \"There are less\"}, \"isCorrect\": false, \"correctVersion\": \"There are fewer\", \"category\": \"grammar\", \"explanation\": \"Use 'fewer' for countable nouns (people) and 'less' for uncountable nouns (water, time).\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "diction",
+    "question_json": "{\"sentence\": \"Please lay the book on the table.\", \"highlightedPart\": {\"startIndex\": 7, \"text\": \"lay\"}, \"isCorrect\": true, \"category\": \"grammar\", \"explanation\": \"Lay is the correct transitive verb here. To lay something down.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "diction",
+    "question_json": "{\"sentence\": \"They're going to the store to buy their favorite candy.\", \"highlightedPart\": {\"startIndex\": 32, \"text\": \"their\"}, \"isCorrect\": true, \"category\": \"grammar\", \"explanation\": \"Their is the possessive pronoun for they.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "diction",
+    "question_json": "{\"sentence\": \"The principal's decision will impact all students.\", \"highlightedPart\": {\"startIndex\": 29, \"text\": \"impact\"}, \"isCorrect\": true, \"category\": \"vocabulary\", \"explanation\": \"Impact is acceptable as a verb in this context, meaning to have a strong effect on someone or something.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "diction",
+    "question_json": "{\"sentence\": \"He tried to elude paying his taxes.\", \"highlightedPart\": {\"startIndex\": 11, \"text\": \"elude\"}, \"isCorrect\": false, \"correctVersion\": \"evade\", \"category\": \"vocabulary\", \"explanation\": \"'Elude' means to escape from or avoid, usually cleverly. 'Evade' means to escape or avoid, especially by trickery or deception.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "diction",
+    "question_json": "{\"sentence\": \"She was adverse to the idea of skydiving.\", \"highlightedPart\": {\"startIndex\": 8, \"text\": \"adverse\"}, \"isCorrect\": true, \"category\": \"vocabulary\", \"explanation\": \"Adverse means acting against or in a contrary direction; hostile.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "diction",
+    "question_json": "{\"sentence\": \"The thief absconded with the stolen jewels.\", \"highlightedPart\": {\"startIndex\": 10, \"text\": \"absconded\"}, \"isCorrect\": true, \"category\": \"vocabulary\", \"explanation\": \"Absconded means to leave hurriedly and secretly, typically to avoid detection of or arrest for an unlawful action.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "diction",
+    "question_json": "{\"sentence\": \"He inferred that I was lying, but he was wrong.\", \"highlightedPart\": {\"startIndex\": 3, \"text\": \"inferred\"}, \"isCorrect\": false, \"correctVersion\": \"implied\", \"category\": \"vocabulary\", \"explanation\": \"To 'imply' is to suggest something indirectly. To 'infer' is to deduce something from evidence.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "diction",
+    "question_json": "{\"sentence\": \"I am adverse to that decision, so I'll fight it.\", \"highlightedPart\": {\"startIndex\": 5, \"text\": \"adverse\"}, \"isCorrect\": true, \"category\": \"vocabulary\", \"explanation\": \"Adverse means acting against or in a contrary direction; hostile.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "speed_reading",
+    "question_json": "{\"title\": \"The Power of Sleep\", \"paragraphs\": [{\"text\": \"Sleep is one of the most important factors influencing our overall health and well-being. During sleep, the body undertakes crucial repair processes, rebuilding tissues, consolidating memories, and regulating hormones. A lack of sleep can lead to a weakened immune system, increased risk of chronic diseases, and impaired cognitive function. It affects everything from our mood and energy levels to our ability to concentrate and make decisions. Adequate sleep is not a luxury; it's a fundamental biological need, just like food and water.\", \"question\": {\"text\": \"According to the passage, what happens during sleep?\", \"options\": [\"The brain stops all activity\", \"The body repairs tissues and consolidates memories\", \"Heart rate increases significantly\", \"Appetite hormones are suppressed\"], \"correctIndex\": 1}}, {\"text\": \"The quality of sleep matters just as much as the quantity. Deep sleep, also known as slow-wave sleep, is the most restorative stage. During this phase, the brain waves slow down, and the body releases growth hormones and repairs itself. Light sleep precedes deep sleep and prepares the body for deeper rest. REM (Rapid Eye Movement) sleep is crucial for cognitive functions like memory consolidation and emotional processing. Disruptions to these sleep stages can negatively impact health, even if the individual is getting enough hours of sleep.\", \"question\": {\"text\": \"What is a key characteristic of deep sleep?\", \"options\": [\"Increased brain activity and vivid dreams\", \"Rapid eye movement and muscle paralysis\", \"Slow brain waves and body repair\", \"Light sleep and preparation for deeper rest\"], \"correctIndex\": 2}}, {\"text\": \"Improving sleep hygiene can significantly enhance sleep quality. This involves establishing a regular sleep schedule, creating a relaxing bedtime routine, and optimizing the sleep environment. The bedroom should be dark, quiet, and cool. Avoid caffeine and alcohol before bed, and limit screen time. The blue light emitted from electronic devices can interfere with melatonin production, a hormone that regulates sleep. Consistent exercise can also improve sleep, but avoid strenuous workouts close to bedtime. A calming activity like reading or taking a warm bath can prepare the body for sleep.\", \"question\": {\"text\": \"Why should electronic devices be avoided before bedtime?\", \"options\": [\"They can cause nightmares\", \"They distract from relaxing activities\", \"The blue light interferes with melatonin production\", \"They increase body temperature\"], \"correctIndex\": 2}}]}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "speed_reading",
+    "question_json": "{\"title\": \"The History of the Internet\", \"paragraphs\": [{\"text\": \"The internet, as we know it today, is the culmination of decades of research and development. Its origins can be traced back to the Cold War era, when the United States Department of Defense sought to create a decentralized communication network that could withstand a nuclear attack. This led to the development of ARPANET (Advanced Research Projects Agency Network) in 1969, considered the precursor to the internet. ARPANET allowed researchers at different universities to share information and resources, marking the beginning of interconnected computer networks.\", \"question\": {\"text\": \"What was the primary motivation for the development of ARPANET?\", \"options\": [\"To facilitate commercial transactions\", \"To create a global social network\", \"To establish a decentralized communication network for the US Department of Defense\", \"To promote scientific research and development\"], \"correctIndex\": 2}}, {\"text\": \"In the 1970s, crucial protocols like TCP/IP (Transmission Control Protocol/Internet Protocol) were developed, providing a standardized way for different networks to communicate with each other. This was a pivotal moment, as it allowed for the interconnection of disparate networks, paving the way for the internet to become a network of networks. Email also emerged during this period, revolutionizing communication and collaboration. The internet remained largely confined to academic and research institutions during this time.\", \"question\": {\"text\": \"What was the significance of the development of TCP/IP?\", \"options\": [\"It enabled the creation of the World Wide Web\", \"It standardized communication between different networks\", \"It led to the development of the first web browser\", \"It allowed for the transmission of audio and video data\"], \"correctIndex\": 1}}, {\"text\": \"The 1990s marked the commercialization of the internet and the rise of the World Wide Web. Tim Berners-Lee's invention of the World Wide Web, with its graphical interface and hypertext links, made the internet accessible to a wider audience. The development of web browsers like Mosaic and Netscape further fueled the internet's growth. E-commerce emerged, transforming the way businesses operated. The internet rapidly became an integral part of everyday life, connecting people and information on a global scale.\", \"question\": {\"text\": \"How did the World Wide Web contribute to the growth of the internet?\", \"options\": [\"It increased the speed of data transmission\", \"It made the internet accessible to a wider audience through a graphical interface\", \"It reduced the cost of internet access\", \"It improved the security of online transactions\"], \"correctIndex\": 1}}]}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "speed_reading",
+    "question_json": "{\"title\": \"The Impact of Deforestation\", \"paragraphs\": [{\"text\": \"Deforestation, the clearing of forests for other land uses, has far-reaching consequences for the environment and human society. Forests play a crucial role in regulating the Earth's climate by absorbing carbon dioxide, a major greenhouse gas, and releasing oxygen. When forests are cleared, this carbon is released back into the atmosphere, contributing to global warming. Deforestation also disrupts local weather patterns, leading to increased erosion, flooding, and drought. The loss of forests also impacts biodiversity, as many species rely on forests for habitat and survival.\", \"question\": {\"text\": \"How does deforestation contribute to global warming?\", \"options\": [\"By increasing the amount of oxygen in the atmosphere\", \"By absorbing carbon dioxide from the atmosphere\", \"By releasing carbon dioxide into the atmosphere\", \"By reducing the Earth's albedo\"], \"correctIndex\": 2}}, {\"text\": \"The primary drivers of deforestation include agriculture, logging, and mining. Large-scale agriculture, particularly cattle ranching and soybean production, is a major cause of deforestation in many regions. Logging, both legal and illegal, contributes to forest degradation and habitat loss. Mining operations often require clearing large areas of forest to access mineral resources. Population growth and increasing demand for resources exacerbate these pressures on forests. Addressing these drivers requires a multi-faceted approach involving sustainable land management practices, stricter regulations, and international cooperation.\", \"question\": {\"text\": \"Which of the following is NOT mentioned as a primary driver of deforestation?\", \"options\": [\"Agriculture\", \"Logging\", \"Mining\", \"Renewable energy production\"], \"correctIndex\": 3}}, {\"text\": \"Combating deforestation requires a combination of conservation efforts, sustainable development initiatives, and policy changes. Protecting existing forests through the establishment of protected areas and community-based forest management is crucial. Promoting sustainable agriculture and forestry practices can reduce the pressure on forests. Reforestation and afforestation efforts can help restore degraded lands and increase carbon sequestration. Consumer choices also play a role, as supporting products from sustainably managed forests can encourage responsible forest management practices. International agreements and collaborations are essential for addressing deforestation on a global scale.\", \"question\": {\"text\": \"What is an example of a sustainable development initiative that can combat deforestation?\", \"options\": [\"Large-scale industrial agriculture\", \"Illegal logging operations\", \"Promoting sustainable agriculture and forestry practices\", \"Unregulated mining activities\"], \"correctIndex\": 2}}]}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "brevity",
+    "question_json": "{\"originalSentence\": \"In order to facilitate a better understanding of the subject matter, we will be providing additional resources.\", \"options\": [\"To help you understand, we\u2019ll provide more resources.\", \"For the purpose of facilitating understanding, additional resources will be provided.\", \"We will give extra resources so that you can better understand the topic.\"], \"correctOption\": \"To help you understand, we\u2019ll provide more resources.\", \"reason\": \"Removes the verbose phrase 'in order to facilitate a better understanding' and simplifies the sentence structure while keeping the core meaning.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "brevity",
+    "question_json": "{\"originalSentence\": \"Due to the fact that the weather conditions were unfavorable, the event had to be postponed.\", \"options\": [\"Because the weather was bad, the event was postponed.\", \"Owing to unfavorable weather conditions, the event was delayed.\", \"The event was postponed as a result of the fact that the weather was not good.\"], \"correctOption\": \"Because the weather was bad, the event was postponed.\", \"reason\": \"Replaces the wordy phrase 'due to the fact that' with the simpler 'because' and removes unnecessary details.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "brevity",
+    "question_json": "{\"originalSentence\": \"At this point in time, we are in the process of evaluating the available options.\", \"options\": [\"We are now evaluating the options.\", \"Currently, we are in the middle of assessing the choices available.\", \"At the present moment, we are going through the process of option evaluation.\"], \"correctOption\": \"We are now evaluating the options.\", \"reason\": \"Eliminates redundant phrases like 'at this point in time' and 'in the process of' for a more direct expression.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "brevity",
+    "question_json": "{\"originalSentence\": \"It is important to note that the results of the study were not conclusive.\", \"options\": [\"The study results were inconclusive.\", \"It should be noted that the findings from the study were not definitive.\", \"The results, which are important to mention, were not conclusive.\"], \"correctOption\": \"The study results were inconclusive.\", \"reason\": \"Removes the unnecessary introductory phrase 'It is important to note that' and simplifies the statement.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "brevity",
+    "question_json": "{\"originalSentence\": \"In the event that you require further assistance, please do not hesitate to contact us.\", \"options\": [\"If you need help, contact us.\", \"Should you require any additional assistance, feel free to reach out.\", \"In case you need more help, we encourage you to get in touch.\"], \"correctOption\": \"If you need help, contact us.\", \"reason\": \"Replaces the overly formal 'in the event that' and 'do not hesitate to' with simpler, direct language.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "brevity",
+    "question_json": "{\"originalSentence\": \"The reason why the project was delayed is because there was a lack of sufficient resources.\", \"options\": [\"The project was delayed due to insufficient resources.\", \"The delay of the project occurred because resources were lacking.\", \"The reason for the project delay is that there weren\u2019t enough resources available.\"], \"correctOption\": \"The project was delayed due to insufficient resources.\", \"reason\": \"Removes the redundant 'the reason why... is because' construction and simplifies the explanation.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "brevity",
+    "question_json": "{\"originalSentence\": \"For the purpose of ensuring accuracy, all data entries will be double-checked.\", \"options\": [\"To ensure accuracy, all data will be double-checked.\", \"In order to guarantee precision, every data entry will undergo verification.\", \"For accuracy\u2019s sake, we will check all data entries twice.\"], \"correctOption\": \"To ensure accuracy, all data will be double-checked.\", \"reason\": \"Replaces the verbose 'for the purpose of ensuring' with the simpler 'to ensure' while keeping the meaning intact.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "brevity",
+    "question_json": "{\"originalSentence\": \"In spite of the fact that the team worked hard, they did not meet the deadline.\", \"options\": [\"Although the team worked hard, they missed the deadline.\", \"Despite the hard work of the team, the deadline was not achieved.\", \"Even though the fact remains that the team put in effort, they failed to meet the deadline.\"], \"correctOption\": \"Although the team worked hard, they missed the deadline.\", \"reason\": \"Replaces the wordy 'in spite of the fact that' with the more concise 'although' and simplifies the sentence.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "brevity",
+    "question_json": "{\"originalSentence\": \"It is necessary for us to take into consideration all possible outcomes before proceeding.\", \"options\": [\"We must consider all possible outcomes first.\", \"It is required that we think about every potential result before moving forward.\", \"Taking all outcomes into account is necessary before we proceed.\"], \"correctOption\": \"We must consider all possible outcomes first.\", \"reason\": \"Removes the passive and verbose 'it is necessary for us to take into consideration' in favor of a direct statement.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  },
+  {
+    "game_type": "brevity",
+    "question_json": "{\"originalSentence\": \"The report was prepared with the intention of providing a comprehensive overview of the situation.\", \"options\": [\"The report provides a comprehensive overview.\", \"The preparation of the report was done to give a full summary of the situation.\", \"The report was created in order to offer a detailed look at the circumstances.\"], \"correctOption\": \"The report provides a comprehensive overview.\", \"reason\": \"Eliminates the redundant 'was prepared with the intention of providing' and simplifies the sentence to its core meaning.\"}",
+    "difficulty": "medium",
+    "is_reviewed": true,
+    "usage_count": 0
+  }
+]

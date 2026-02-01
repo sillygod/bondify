@@ -23,6 +23,7 @@ import {
 import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
 import { useAttentionArticle, AttentionAPIArticle } from "@/hooks/useGameQuestions";
+import { Footer } from "@/components/layout/Footer";
 
 type GameState = "ready" | "playing" | "paused" | "ended";
 
@@ -522,6 +523,9 @@ const Attention = () => {
                 Play Again
               </Button>
             </div>
+
+            {/* Buy me a coffee - show when score is good */}
+            {score >= 500 && <Footer minimal className="mt-6" />}
           </motion.div>
         )}
       </AnimatePresence>

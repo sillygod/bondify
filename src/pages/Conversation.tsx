@@ -21,6 +21,9 @@ import {
   AlertCircle,
   Lightbulb,
   Target,
+  Hotel,
+  Stethoscope,
+  Users,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -33,6 +36,8 @@ import {
   startConversation,
   clearSession,
   ConversationOptions,
+  ScenarioInfo,
+  getScenarios,
 } from "@/lib/api/conversation";
 import { addToWordlist } from "@/lib/api/wordlist";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
@@ -49,6 +54,23 @@ const TOPICS = [
   { id: "hobbies", label: "Hobbies", icon: Gamepad2, color: "from-green-500 to-emerald-500" },
   { id: "education", label: "Education", icon: GraduationCap, color: "from-yellow-500 to-orange-500" },
 ];
+
+// Scenario icons mapping
+const SCENARIO_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  job_interview: Briefcase,
+  restaurant: UtensilsCrossed,
+  airport: Plane,
+  hotel: Hotel,
+  doctor: Stethoscope,
+};
+
+const SCENARIO_COLORS: Record<string, string> = {
+  job_interview: "from-purple-500 to-indigo-500",
+  restaurant: "from-orange-500 to-amber-500",
+  airport: "from-blue-500 to-cyan-500",
+  hotel: "from-emerald-500 to-teal-500",
+  doctor: "from-rose-500 to-pink-500",
+};
 
 // Parse feedback into structured sections
 interface FeedbackSection {
@@ -175,12 +197,30 @@ const Conversation = () => {
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [customTopic, setCustomTopic] = useState("");
 
+  // Scenario mode state
+  const [scenarios, setScenarios] = useState<ScenarioInfo[]>([]);
+  const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
+  const [activeScenario, setActiveScenario] = useState<{
+    id: string;
+    name: string;
+    userRole: string;
+    userGoal: string;
+  } | null>(null);
+  const [practiceMode, setPracticeMode] = useState<"topic" | "scenario">("topic");
+
   // Target words
   const [targetWords, setTargetWords] = useState<string[]>([]);
 
   // Words added to list
   const [addedWords, setAddedWords] = useState<Set<string>>(new Set());
   const [addingWord, setAddingWord] = useState<string | null>(null);
+
+  // Load scenarios on mount
+  useEffect(() => {
+    getScenarios()
+      .then(setScenarios)
+      .catch(console.error);
+  }, []);
 
   // Hide header when chatting
   useEffect(() => {
@@ -204,7 +244,10 @@ const Conversation = () => {
     setIsLoading(true);
 
     const topic = customTopic || TOPICS.find(t => t.id === selectedTopic)?.label || undefined;
-    const options: ConversationOptions = { topic };
+    const options: ConversationOptions = {
+      topic: practiceMode === "topic" ? topic : undefined,
+      scenario: practiceMode === "scenario" ? selectedScenario ?? undefined : undefined,
+    };
 
     try {
       const response = await startConversation(options);
@@ -214,6 +257,16 @@ const Conversation = () => {
         content: response.opening_message,
       };
       setMessages([opening]);
+
+      // Set scenario context if in scenario mode
+      if (response.scenario && response.scenario_name) {
+        setActiveScenario({
+          id: response.scenario,
+          name: response.scenario_name,
+          userRole: response.user_role || "",
+          userGoal: response.user_goal || "",
+        });
+      }
 
       if (response.target_words && response.target_words.length > 0) {
         setTargetWords(response.target_words);
@@ -326,59 +379,186 @@ const Conversation = () => {
         </div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-          <div className="glass-card rounded-2xl p-6">
-            <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-primary" />
-              Choose a Topic
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-              {TOPICS.map((topic) => {
-                const Icon = topic.icon;
-                const isSelected = selectedTopic === topic.id;
-                return (
-                  <motion.button
-                    key={topic.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => { setSelectedTopic(isSelected ? null : topic.id); setCustomTopic(""); }}
-                    className={cn(
-                      "p-4 rounded-xl border transition-all duration-200 text-left",
-                      isSelected ? "border-primary bg-primary/20 shadow-[0_0_20px_hsl(var(--primary)/0.3)]" : "border-border/50 bg-secondary/30 hover:border-primary/50"
-                    )}
-                  >
-                    <div className={cn("w-10 h-10 rounded-lg bg-gradient-to-br flex items-center justify-center mb-2", topic.color)}>
-                      <Icon className="w-5 h-5 text-white" />
-                    </div>
-                    <span className="font-medium text-sm">{topic.label}</span>
-                  </motion.button>
-                );
-              })}
-            </div>
-            <Input
-              value={customTopic}
-              onChange={(e) => { setCustomTopic(e.target.value); setSelectedTopic(null); }}
-              placeholder="Or type a custom topic..."
-              className="rounded-xl bg-background/50"
-            />
+          {/* Mode Tabs */}
+          <div className="flex gap-2 p-1 bg-secondary/50 rounded-xl">
+            <button
+              onClick={() => { setPracticeMode("topic"); setSelectedScenario(null); }}
+              className={cn(
+                "flex-1 py-3 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2",
+                practiceMode === "topic"
+                  ? "bg-primary text-primary-foreground shadow-lg"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <MessageCircle className="w-4 h-4" />
+              Free Conversation
+            </button>
+            <button
+              onClick={() => { setPracticeMode("scenario"); setSelectedTopic(null); setCustomTopic(""); }}
+              className={cn(
+                "flex-1 py-3 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2",
+                practiceMode === "scenario"
+                  ? "bg-primary text-primary-foreground shadow-lg"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Users className="w-4 h-4" />
+              Role-Play Scenarios
+            </button>
           </div>
 
-          <div className="glass-card rounded-2xl p-6 bg-gradient-to-br from-neon-cyan/5 to-primary/5">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-neon-cyan/20">
-                <Sparkles className="w-5 h-5 text-neon-cyan" />
+          {/* Topic Mode Content */}
+          {practiceMode === "topic" && (
+            <>
+              <div className="glass-card rounded-2xl p-6">
+                <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5 text-primary" />
+                  Choose a Topic
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                  {TOPICS.map((topic) => {
+                    const Icon = topic.icon;
+                    const isSelected = selectedTopic === topic.id;
+                    return (
+                      <motion.button
+                        key={topic.id}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => { setSelectedTopic(isSelected ? null : topic.id); setCustomTopic(""); }}
+                        className={cn(
+                          "p-4 rounded-xl border transition-all duration-200 text-left",
+                          isSelected ? "border-primary bg-primary/20 shadow-[0_0_20px_hsl(var(--primary)/0.3)]" : "border-border/50 bg-secondary/30 hover:border-primary/50"
+                        )}
+                      >
+                        <div className={cn("w-10 h-10 rounded-lg bg-gradient-to-br flex items-center justify-center mb-2", topic.color)}>
+                          <Icon className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="font-medium text-sm">{topic.label}</span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+                <Input
+                  value={customTopic}
+                  onChange={(e) => { setCustomTopic(e.target.value); setSelectedTopic(null); }}
+                  placeholder="Or type a custom topic..."
+                  className="rounded-xl bg-background/50"
+                />
               </div>
-              <div>
-                <h3 className="font-display font-semibold mb-1">Smart Vocabulary Practice</h3>
-                <p className="text-sm text-muted-foreground">
-                  The AI will automatically select relevant vocabulary from your word list and help you use them naturally.
-                </p>
-              </div>
-            </div>
-          </div>
 
-          <Button onClick={handleStartConversation} className="w-full py-6 text-lg font-display bg-gradient-to-r from-primary to-neon-cyan hover:opacity-90 rounded-xl">
-            <MessageCircle className="w-5 h-5 mr-2" />
-            Start Conversation
+              <div className="glass-card rounded-2xl p-6 bg-gradient-to-br from-neon-cyan/5 to-primary/5">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-neon-cyan/20">
+                    <Sparkles className="w-5 h-5 text-neon-cyan" />
+                  </div>
+                  <div>
+                    <h3 className="font-display font-semibold mb-1">Smart Vocabulary Practice</h3>
+                    <p className="text-sm text-muted-foreground">
+                      The AI will automatically select relevant vocabulary from your word list and help you use them naturally.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Scenario Mode Content */}
+          {practiceMode === "scenario" && (
+            <>
+              <div className="glass-card rounded-2xl p-6">
+                <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-neon-pink" />
+                  Choose a Scenario
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {scenarios.map((scenario) => {
+                    const Icon = SCENARIO_ICONS[scenario.id] || MessageCircle;
+                    const color = SCENARIO_COLORS[scenario.id] || "from-gray-500 to-gray-600";
+                    const isSelected = selectedScenario === scenario.id;
+                    return (
+                      <motion.button
+                        key={scenario.id}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setSelectedScenario(isSelected ? null : scenario.id)}
+                        className={cn(
+                          "p-5 rounded-xl border transition-all duration-200 text-left",
+                          isSelected
+                            ? "border-neon-pink bg-neon-pink/20 shadow-[0_0_20px_hsl(320_100%_60%/0.3)]"
+                            : "border-border/50 bg-secondary/30 hover:border-neon-pink/50"
+                        )}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className={cn("w-12 h-12 rounded-lg bg-gradient-to-br flex items-center justify-center shrink-0", color)}>
+                            <Icon className="w-6 h-6 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-base mb-1">{scenario.name}</h3>
+                            <p className="text-xs text-muted-foreground mb-2">
+                              You: <span className="text-foreground">{scenario.userRole}</span>
+                            </p>
+                            <p className="text-xs text-muted-foreground line-clamp-2">{scenario.userGoal}</p>
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            className="mt-4 pt-4 border-t border-border/50"
+                          >
+                            <p className="text-xs text-muted-foreground mb-2">Practice vocabulary:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {scenario.vocabulary.slice(0, 5).map((word) => (
+                                <span key={word} className="px-2 py-0.5 text-xs rounded-full bg-neon-pink/10 text-neon-pink border border-neon-pink/30">
+                                  {word}
+                                </span>
+                              ))}
+                              {scenario.vocabulary.length > 5 && (
+                                <span className="px-2 py-0.5 text-xs rounded-full bg-secondary text-muted-foreground">
+                                  +{scenario.vocabulary.length - 5} more
+                                </span>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="glass-card rounded-2xl p-6 bg-gradient-to-br from-neon-pink/5 to-primary/5">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-neon-pink/20">
+                    <Target className="w-5 h-5 text-neon-pink" />
+                  </div>
+                  <div>
+                    <h3 className="font-display font-semibold mb-1">Real-World Practice</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Practice realistic conversations in common situations. The AI will play a role and guide you through the scenario.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          <Button
+            onClick={handleStartConversation}
+            disabled={(practiceMode === "scenario" && !selectedScenario)}
+            className="w-full py-6 text-lg font-display bg-gradient-to-r from-primary to-neon-cyan hover:opacity-90 rounded-xl disabled:opacity-50"
+          >
+            {practiceMode === "scenario" ? (
+              <>
+                <Users className="w-5 h-5 mr-2" />
+                Start Role-Play
+              </>
+            ) : (
+              <>
+                <MessageCircle className="w-5 h-5 mr-2" />
+                Start Conversation
+              </>
+            )}
           </Button>
         </motion.div>
       </div>

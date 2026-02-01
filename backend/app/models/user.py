@@ -19,6 +19,11 @@ class User(BaseModel):
         default="intermediate",
         nullable=False,
     )
+    role = Column(
+        Enum("user", "admin", name="user_role"),
+        default="user",
+        nullable=False,
+    )
     sound_enabled = Column(Boolean, default=True, nullable=False)
     notifications_enabled = Column(Boolean, default=True, nullable=False)
     reminder_enabled = Column(Boolean, default=False, nullable=False)
@@ -30,4 +35,6 @@ class User(BaseModel):
     achievements = relationship("UserAchievement", back_populates="user", cascade="all, delete-orphan")
     wordlist = relationship("UserWordlist", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
+    answer_records = relationship("AnswerRecord", back_populates="user", cascade="all, delete-orphan")
+
 

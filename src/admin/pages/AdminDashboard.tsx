@@ -8,6 +8,7 @@ import {
     BarChart3
 } from "lucide-react";
 import { StatsCard } from "../components/StatsCard";
+import { api } from "@/lib/api";
 
 interface QuestionStats {
     [gameType: string]: {
@@ -21,8 +22,6 @@ interface CacheStats {
     total_lookups: number;
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
-
 export const AdminDashboard = () => {
     const [questionStats, setQuestionStats] = useState<QuestionStats>({});
     const [cacheStats, setCacheStats] = useState<CacheStats>({ cached_words: 0, total_lookups: 0 });
@@ -31,20 +30,13 @@ export const AdminDashboard = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const [qRes, cRes] = await Promise.all([
-                    fetch(`${API_BASE}/api/game-questions/`),
-                    fetch(`${API_BASE}/api/vocabulary/cache-stats`),
+                const [qStats, cStats] = await Promise.all([
+                    api.get<any>('/api/admin/questions/stats'),
+                    api.get<any>('/api/admin/vocabulary/cache-stats'),
                 ]);
 
-                if (qRes.ok) {
-                    const data = await qRes.json();
-                    setQuestionStats(data.stats || {});
-                }
-
-                if (cRes.ok) {
-                    const data = await cRes.json();
-                    setCacheStats(data);
-                }
+                setQuestionStats(qStats.stats || {});
+                setCacheStats(cStats);
             } catch (error) {
                 console.error("Failed to fetch stats:", error);
             } finally {

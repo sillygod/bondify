@@ -10,6 +10,8 @@ import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
 import { useRecallQuestions, RecallQuestion } from "@/hooks/useGameQuestions";
 import { useGameSRS } from "@/hooks/useGameSRS";
+import { recordAnswer } from "@/lib/api/analytics";
+import { Footer } from "@/components/layout/Footer";
 
 // Fallback mock data for when API is unavailable
 import { vocabularyData } from "@/data/vocabulary";
@@ -111,6 +113,17 @@ const RecallGame = () => {
       recordMissedWord(currentWord.word, currentWord.meaning);
     }
 
+    // Record answer for weakness analysis
+    recordAnswer({
+      word: currentWord.word,
+      gameType: "recall",
+      isCorrect: correct,
+      partOfSpeech: currentWord.partOfSpeech || "noun",
+      questionType: "definition",
+      userAnswer: userInput.trim(),
+      correctAnswer: currentWord.word,
+    }).catch(console.error);
+
     setTimeout(() => {
       if (currentQuestionIndex + 1 >= TOTAL_QUESTIONS) {
         setGameState("ended");
@@ -128,6 +141,16 @@ const RecallGame = () => {
     // Record skipped word for SRS
     if (currentWord) {
       recordMissedWord(currentWord.word, currentWord.meaning);
+      // Record skipped answer for weakness analysis
+      recordAnswer({
+        word: currentWord.word,
+        gameType: "recall",
+        isCorrect: false,
+        partOfSpeech: currentWord.partOfSpeech || "noun",
+        questionType: "definition",
+        userAnswer: "[skipped]",
+        correctAnswer: currentWord.word,
+      }).catch(console.error);
     }
     setTimeout(() => {
       if (currentQuestionIndex + 1 >= TOTAL_QUESTIONS) {
@@ -408,6 +431,9 @@ const RecallGame = () => {
                 </Button>
               )}
             </div>
+
+            {/* Buy me a coffee - show when accuracy is good */}
+            {correctAnswers >= 7 && <Footer minimal className="mt-6" />}
           </motion.div>
         )}
       </AnimatePresence>

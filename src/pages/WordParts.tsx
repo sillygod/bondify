@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
 import { useWordPartsQuestions, WordPartsQuestion } from "@/hooks/useGameQuestions";
+import { Footer } from "@/components/layout/Footer";
 
 interface WordPart {
   type: "prefix" | "root" | "suffix";
@@ -544,6 +545,9 @@ const WordParts = () => {
                 Play Again
               </Button>
             </div>
+
+            {/* Buy me a coffee - show when score is good */}
+            {score >= 800 && <Footer minimal className="mt-6" />}
           </motion.div>
         )}
       </AnimatePresence>

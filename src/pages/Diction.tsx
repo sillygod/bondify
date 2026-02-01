@@ -7,6 +7,7 @@ import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { Footer } from "@/components/layout/Footer";
 
 type GameState = "ready" | "playing" | "showingResult" | "ended";
 
@@ -416,6 +417,9 @@ const Diction = () => {
                   </>
                 )}
               </Button>
+
+              {/* Buy me a coffee - show when score is good */}
+              {score >= 7 && <Footer minimal className="mt-6" />}
             </motion.div>
           )}
         </AnimatePresence>

@@ -11,6 +11,7 @@ import {
   FileText,
   RefreshCcw,
   BookMarked,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -28,6 +29,7 @@ const navItems = [
   { icon: BookMarked, label: "Reading Mode", path: "/reading" },
   { icon: FileText, label: "Rephrase Analyzer", path: "/rephrase-analyzer" },
   { icon: BookOpen, label: "Word List", path: "/word-list" },
+  { icon: Info, label: "About", path: "/about" },
 ];
 
 export const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }: SidebarProps) => {
@@ -77,7 +79,7 @@ export const Sidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }: Sideba
                 exit={{ opacity: 0, x: -10 }}
               >
                 <h1 className="font-display font-bold text-lg tracking-wide neon-text">
-                  LEXICON
+                  BONDIFY
                 </h1>
                 <p className="text-xs text-muted-foreground">Learn English</p>
               </motion.div>

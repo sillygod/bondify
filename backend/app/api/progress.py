@@ -9,6 +9,8 @@ from app.schemas.progress import (
     AchievementResponse,
     AchievementsListResponse,
     LearningStats,
+    ProgressHistoryDay,
+    ProgressHistoryResponse,
     StreakData,
     StreakDay,
 )
@@ -94,4 +96,30 @@ async def get_achievements(
     
     return AchievementsListResponse(
         achievements=[AchievementResponse(**a) for a in achievements]
+    )
+
+
+@router.get("/history", response_model=ProgressHistoryResponse)
+async def get_progress_history(
+    current_user: CurrentUser,
+    db: DbSession,
+    days: int = 30,
+) -> ProgressHistoryResponse:
+    """Get progress history for learning curve visualization.
+    
+    Args:
+        days: Number of days to fetch (default: 30, max: 90)
+    """
+    # Limit days to prevent excessive data fetching
+    days = min(max(days, 7), 90)
+    
+    progress_service = ProgressService(db)
+    history_data = await progress_service.get_progress_history(current_user.id, days)
+    
+    # Convert history dicts to ProgressHistoryDay models
+    data = [ProgressHistoryDay(**day) for day in history_data["data"]]
+    
+    return ProgressHistoryResponse(
+        data=data,
+        totalDays=history_data["totalDays"],
     )

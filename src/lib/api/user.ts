@@ -14,6 +14,7 @@ export interface UserProfile {
   notificationsEnabled: boolean;
   reminderEnabled: boolean;
   reminderTime: string | null;
+  role: 'user' | 'admin';
   createdAt: string;
 }
 

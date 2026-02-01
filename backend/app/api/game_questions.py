@@ -5,67 +5,13 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Body
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.database import get_db
-from app.llm.factory import LLMServiceError
-from app.llm.game_question_agent import GameQuestionAgent
 from app.services.game_question_service import GameQuestionService
+from app.llm.game_question_agent import GameQuestionAgent
 
 router = APIRouter(prefix="/api/game-questions", tags=["game-questions"])
 
 
-class GenerateQuestionsRequest(BaseModel):
-    """Request to generate new game questions."""
-
-    game_type: str = Field(
-        ..., description="Type of game: clarity, transitions, brevity, context, diction, punctuation, listening, speed_reading, word_parts, rocket, rephrase, recall, attention"
-    )
-    count: int = Field(default=5, ge=1, le=20, description="Number of questions")
-    difficulty: str = Field(default="medium", description="Difficulty level")
-
-
-class GenerateQuestionsResponse(BaseModel):
-    """Response from question generation."""
-
-    generated: int
-    game_type: str
-    questions: list
-
-
-@router.post("/generate", response_model=GenerateQuestionsResponse)
-async def generate_questions(
-    request: GenerateQuestionsRequest,
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Generate new game questions using AI.
-
-    This endpoint calls the LLM to generate new questions and saves them to the database.
-    """
-    try:
-        service = GameQuestionService(db)
-        questions = await service.generate_questions(
-            game_type=request.game_type,
-            count=request.count,
-            difficulty=request.difficulty,
-        )
-
-        return GenerateQuestionsResponse(
-            generated=len(questions),
-            game_type=request.game_type,
-            questions=questions,
-        )
-
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"error": "VALIDATION_ERROR", "detail": str(e)},
-        )
-    except LLMServiceError as e:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={"error": "LLM_SERVICE_ERROR", "detail": str(e.message)},
-        )
 
 
 @router.get("/{game_type}")
@@ -99,65 +45,7 @@ async def get_questions(
     return {"game_type": game_type, "count": len(questions), "questions": questions}
 
 
-@router.get("/")
-async def get_question_stats(db: AsyncSession = Depends(get_db)):
-    """Get statistics about stored questions."""
-    service = GameQuestionService(db)
-    stats = await service.get_question_stats()
-    return {"stats": stats}
 
 
-@router.patch("/{question_id}/review")
-async def mark_question_reviewed(
-    question_id: int,
-    reviewed: bool = Query(default=True),
-    db: AsyncSession = Depends(get_db),
-):
-    """Mark a question as reviewed (or unreviewed)."""
-    service = GameQuestionService(db)
-    success = await service.mark_reviewed(question_id, reviewed)
-
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"error": "NOT_FOUND", "detail": "Question not found"},
-        )
-
-    return {"success": True, "question_id": question_id, "is_reviewed": reviewed}
 
 
-@router.delete("/{question_id}")
-async def delete_question(
-    question_id: int,
-    db: AsyncSession = Depends(get_db),
-):
-    """Delete a generated question."""
-    service = GameQuestionService(db)
-    success = await service.delete_question(question_id)
-
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"error": "NOT_FOUND", "detail": "Question not found"},
-        )
-
-    return {"success": True, "question_id": question_id}
-
-
-@router.patch("/{question_id}")
-async def update_question(
-    question_id: int,
-    updates: dict = Body(...),
-    db: AsyncSession = Depends(get_db),
-):
-    """Update a generated question."""
-    service = GameQuestionService(db)
-    updated_question = await service.update_question(question_id, updates)
-
-    if not updated_question:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"error": "NOT_FOUND", "detail": "Question not found"},
-        )
-
-    return updated_question

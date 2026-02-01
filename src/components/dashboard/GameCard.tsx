@@ -66,7 +66,7 @@ export const GameCard = ({ icon: Icon, title, description, path, color, delay = 
           <h3 className="font-display font-semibold text-lg mb-2">{title}</h3>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
-        
+
         <motion.div
           whileHover={{ scale: 1.1 }}
           className={cn(

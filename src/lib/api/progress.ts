@@ -87,9 +87,33 @@ export async function getAchievements(): Promise<Achievement[]> {
   return response.achievements;
 }
 
+// Progress History types for Learning Curve
+export interface ProgressHistoryDay {
+  date: string;
+  xp: number;
+  wordsLearned: number;
+  reviews: number;
+  accuracy: number;
+}
+
+export interface ProgressHistoryResponse {
+  data: ProgressHistoryDay[];
+  totalDays: number;
+}
+
+/**
+ * Get progress history for learning curve visualization
+ * @param days - Number of days to fetch (7, 30, or 90)
+ */
+export async function getProgressHistory(days: number = 30): Promise<ProgressHistoryResponse> {
+  const response = await api.get<ProgressHistoryResponse>(`/api/progress/history?days=${days}`);
+  return response;
+}
+
 export default {
   getStats,
   getStreak,
   recordActivity,
   getAchievements,
+  getProgressHistory,
 };

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Flame, Calendar, Trophy, Target, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getStreak, StreakData, StreakDay } from "@/lib/api/progress";
-import { tokenManager } from "@/lib/api";
+import { useStats } from "@/contexts/StatsContext";
 
 interface StreakModalProps {
   isOpen: boolean;
@@ -14,15 +14,15 @@ interface StreakModalProps {
 const generateMockStreakData = (): StreakDay[] => {
   const data: StreakDay[] = [];
   const today = new Date();
-  
+
   for (let i = 27; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
-    
+
     // Simulate activity (more recent = higher chance of activity)
     const hasActivity = i < 7 ? true : Math.random() > 0.3;
     const intensity = hasActivity ? Math.floor(Math.random() * 4) + 1 : 0;
-    
+
     data.push({
       date: date.toISOString().split('T')[0],
       hasActivity,
@@ -44,14 +44,15 @@ const intensityColors = [
 export const StreakModal = ({ isOpen, onClose }: StreakModalProps) => {
   const [streakData, setStreakData] = useState<StreakData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated } = useStats();
 
   useEffect(() => {
     const loadStreakData = async () => {
       if (!isOpen) return;
-      
+
       setIsLoading(true);
-      
-      if (tokenManager.isAuthenticated()) {
+
+      if (isAuthenticated) {
         try {
           const data = await getStreak();
           setStreakData(data);
@@ -74,7 +75,7 @@ export const StreakModal = ({ isOpen, onClose }: StreakModalProps) => {
           history: generateMockStreakData(),
         });
       }
-      
+
       setIsLoading(false);
     };
 
@@ -98,7 +99,7 @@ export const StreakModal = ({ isOpen, onClose }: StreakModalProps) => {
             onClick={onClose}
             className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
           />
-          
+
           {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -110,7 +111,7 @@ export const StreakModal = ({ isOpen, onClose }: StreakModalProps) => {
             <div className="relative bg-card border border-border/50 rounded-2xl shadow-2xl overflow-hidden w-full max-w-lg">
               {/* Header gradient */}
               <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-neon-orange/20 to-transparent" />
-              
+
               {/* Close button */}
               <button
                 onClick={onClose}
@@ -118,7 +119,7 @@ export const StreakModal = ({ isOpen, onClose }: StreakModalProps) => {
               >
                 <X className="w-5 h-5 text-muted-foreground" />
               </button>
-              
+
               {/* Content */}
               <div className="relative p-6">
                 {/* Title */}
@@ -162,13 +163,13 @@ export const StreakModal = ({ isOpen, onClose }: StreakModalProps) => {
                         <p className="text-xs text-muted-foreground">Days Active</p>
                       </div>
                     </div>
-                    
+
                     {/* Calendar label */}
                     <div className="flex items-center gap-2 mb-3">
                       <Calendar className="w-4 h-4 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground">Last 28 days</span>
                     </div>
-                    
+
                     {/* Streak calendar grid */}
                     <div className="grid grid-cols-7 gap-2 mb-4">
                       {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
@@ -196,7 +197,7 @@ export const StreakModal = ({ isOpen, onClose }: StreakModalProps) => {
                         );
                       })}
                     </div>
-                    
+
                     {/* Legend */}
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>Less</span>

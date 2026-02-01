@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { StatsProvider } from "@/contexts/StatsContext";
+
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import RocketGame from "./pages/RocketGame";
@@ -31,10 +32,12 @@ import Profile from "./pages/Profile";
 import SRSReview from "./pages/SRSReview";
 import ReadingMode from "./pages/ReadingMode";
 import ShadowingGame from "./pages/ShadowingGame";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
 // Admin imports
-import { AdminLayout, AdminDashboard, QuestionManager, GenerateQuestions, NotificationManager } from "./admin";
+import { AdminLayout, AdminDashboard, QuestionManager, GenerateQuestions, NotificationManager, AISettings } from "./admin";
+import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -49,11 +52,14 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
 
             {/* Admin Routes */}
-            <Route element={<AdminLayout />}>
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/questions" element={<QuestionManager />} />
-              <Route path="/admin/generate" element={<GenerateQuestions />} />
-              <Route path="/admin/notifications" element={<NotificationManager />} />
+            <Route element={<ProtectedRoute requiredRole="admin" />}>
+              <Route element={<AdminLayout />}>
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/questions" element={<QuestionManager />} />
+                <Route path="/admin/generate" element={<GenerateQuestions />} />
+                <Route path="/admin/notifications" element={<NotificationManager />} />
+                <Route path="/admin/settings" element={<AISettings />} />
+              </Route>
             </Route>
 
             {/* Main App Routes */}
@@ -83,14 +89,15 @@ const App = () => (
               <Route path="/srs-review" element={<SRSReview />} />
               <Route path="/reading" element={<ReadingMode />} />
               <Route path="/shadowing" element={<ShadowingGame />} />
+              <Route path="/about" element={<About />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
         </StatsProvider>
+
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
 
 export default App;
-

@@ -1,0 +1,44 @@
+# Render 部署配置
+# 這是 Render Blueprint 配置，可以用來快速部署
+
+services:
+  # Backend API Service
+  - type: web
+    name: bondify-api
+    runtime: python
+    region: singapore 
+    plan: free
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+      mkdir -p data
+      alembic upgrade head
+    startCommand: python scripts/seed_data.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    rootDir: backend
+    healthCheckPath: /health
+    envVars:
+      # App Settings
+      - key: APP_NAME
+        value: Bondify API
+      - key: DEBUG
+        value: "false"
+      # Database (SQLite - ephemeral on free tier)
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./data/app.db
+      # Security - 請在 Render Dashboard 設定這些
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "30"
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: "7"
+      # CORS - 設定你的 Cloudflare Pages 網域
+      - key: CORS_ORIGINS
+        value: https://bondify.pages.dev,https://your-custom-domain.com
+      # LLM Provider
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: GOOGLE_API_KEY
+        sync: false  # 在 Render Dashboard 手動設定

@@ -8,6 +8,7 @@ import { useGameProgress } from "@/hooks/useGameProgress";
 import { useNavigate } from "react-router-dom";
 import { usePronunciationQuestions, PronunciationQuestion as ApiPronunciationQuestion } from "@/hooks/useGameQuestions";
 import { speak, stopSpeech } from "@/lib/api/tts";
+import { Footer } from "@/components/layout/Footer";
 
 type GameState = "ready" | "playing" | "showingResult" | "ended";
 
@@ -494,6 +495,9 @@ const Pronunciation = () => {
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Play Again
               </Button>
+
+              {/* Buy me a coffee - show when score is good */}
+              {score >= 7 && <Footer minimal className="mt-6" />}
             </motion.div>
           )}
         </AnimatePresence>

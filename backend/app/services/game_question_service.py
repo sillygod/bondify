@@ -8,7 +8,6 @@ from sqlalchemy import Integer, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.game_question import GameQuestion
-from app.llm.game_question_agent import get_game_question_agent
 
 
 class GameQuestionService:
@@ -56,13 +55,18 @@ class GameQuestionService:
         Returns:
             List of generated question dictionaries
         """
+        from app.llm.factory import LLMContext
+        from app.llm.game_question_agent import GameQuestionAgent
+        
         # Get existing words to avoid duplicates
         existing_words = await self.get_existing_words(game_type)
 
-        agent = get_game_question_agent()
-        # Request more questions than needed to account for potential duplicates
-        request_count = count + min(len(existing_words), 10)
-        questions = await agent.generate_questions(game_type, request_count, existing_words)
+        # Use LLMContext to get DB-configured LLM with automatic usage logging
+        async with LLMContext(self.db, endpoint=f"game_question_{game_type}") as ctx:
+            agent = GameQuestionAgent(llm=ctx.llm)
+            # Request more questions than needed to account for potential duplicates
+            request_count = count + min(len(existing_words), 10)
+            questions = await agent.generate_questions(game_type, request_count, existing_words)
 
         # Filter out duplicates and limit to requested count
         saved_questions = []

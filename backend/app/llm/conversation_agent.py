@@ -17,7 +17,11 @@ from app.llm.prompts import (
     CONVERSATION_REPLY_PROMPT,
     CONVERSATION_REPLY_WITH_WORDS_PROMPT,
     CONVERSATION_SYSTEM_PROMPT,
+    CONVERSATION_SCENARIO_SYSTEM_PROMPT,
+    CONVERSATION_SCENARIO_REPLY_PROMPT,
+    CONVERSATION_SCENARIO_FEEDBACK_PROMPT,
     GRAMMAR_CHECK_PROMPT,
+    SCENARIO_TEMPLATES,
 )
 
 
@@ -265,7 +269,7 @@ class ConversationAgent:
 
 
 # Session storage for conversation history (in-memory for now)
-# Each session stores: {"messages": [...], "topic": str, "target_words": [...]}
+# Each session stores: {"messages": [...], "topic": str, "target_words": [...], "scenario": str or None}
 _conversation_sessions: dict[str, dict] = {}
 
 
@@ -276,23 +280,33 @@ def get_session(session_id: str) -> list[dict]:
 
 
 def get_session_context(session_id: str) -> dict:
-    """Get session context including topic and target words."""
+    """Get session context including topic, target words, and scenario."""
     session = _conversation_sessions.get(session_id, {})
     return {
         "topic": session.get("topic"),
         "target_words": session.get("target_words", []),
+        "scenario": session.get("scenario"),
     }
 
 
 def create_session(
-    topic: Optional[str] = None, target_words: Optional[list[str]] = None
+    topic: Optional[str] = None, 
+    target_words: Optional[list[str]] = None,
+    scenario: Optional[str] = None
 ) -> str:
     """Create a new conversation session with optional context."""
     session_id = str(uuid.uuid4())
+    
+    # If scenario is specified, use scenario-specific vocabulary
+    if scenario and scenario in SCENARIO_TEMPLATES:
+        scenario_data = SCENARIO_TEMPLATES[scenario]
+        target_words = scenario_data.get("vocabulary", [])
+    
     _conversation_sessions[session_id] = {
         "messages": [],
         "topic": topic,
         "target_words": target_words or [],
+        "scenario": scenario,
     }
     return session_id
 
@@ -300,7 +314,7 @@ def create_session(
 def add_message(session_id: str, role: str, content: str, correction: Optional[dict] = None):
     """Add a message to a session."""
     if session_id not in _conversation_sessions:
-        _conversation_sessions[session_id] = {"messages": [], "topic": None, "target_words": []}
+        _conversation_sessions[session_id] = {"messages": [], "topic": None, "target_words": [], "scenario": None}
 
     message = {
         "id": str(uuid.uuid4()),
@@ -318,3 +332,29 @@ def clear_session(session_id: str):
     if session_id in _conversation_sessions:
         del _conversation_sessions[session_id]
 
+
+def get_available_scenarios() -> list[dict]:
+    """Get list of available scenarios with their details."""
+    scenarios = []
+    for scenario_id, data in SCENARIO_TEMPLATES.items():
+        scenarios.append({
+            "id": scenario_id,
+            "name": data["name"],
+            "role": data["role"],
+            "userRole": data["user_role"],
+            "userGoal": data["user_goal"],
+            "vocabulary": data["vocabulary"],
+        })
+    return scenarios
+
+
+def get_scenario_opening(scenario_id: str) -> Optional[str]:
+    """Get the predefined opening message for a scenario."""
+    if scenario_id in SCENARIO_TEMPLATES:
+        return SCENARIO_TEMPLATES[scenario_id].get("opening")
+    return None
+
+
+def get_scenario_data(scenario_id: str) -> Optional[dict]:
+    """Get full scenario data by ID."""
+    return SCENARIO_TEMPLATES.get(scenario_id)

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { getRandomQuestions, ListeningQuestion } from "@/data/listeningData";
 import { useNavigate } from "react-router-dom";
 import { useGameProgress } from "@/hooks/useGameProgress";
+import { Footer } from "@/components/layout/Footer";
 
 type GameState = "ready" | "playing" | "showingResult" | "ended";
 
@@ -220,6 +221,9 @@ const ListeningGame = () => {
               Practice Again
             </Button>
           </div>
+
+          {/* Buy me a coffee - show when score is good */}
+          {percentage >= 60 && <Footer minimal className="mt-6" />}
         </motion.div>
       </div>
     );
@@ -289,8 +293,8 @@ const ListeningGame = () => {
                       scale: isPlaying && currentSpeakerIndex === index ? 1.02 : 1,
                     }}
                     className={`p-3 rounded-lg transition-colors ${isPlaying && currentSpeakerIndex === index
-                        ? "bg-primary/20 border border-primary/30"
-                        : "bg-muted/50"
+                      ? "bg-primary/20 border border-primary/30"
+                      : "bg-muted/50"
                       }`}
                   >
                     <div className="flex items-start gap-3">
@@ -333,22 +337,22 @@ const ListeningGame = () => {
                   onClick={() => handleAnswer(index)}
                   disabled={showResult || !hasListened}
                   className={`w-full p-4 rounded-xl border text-left transition-all ${!hasListened
-                      ? "opacity-50 cursor-not-allowed border-border/50 bg-muted/30"
-                      : showResult
-                        ? isCorrect
-                          ? "border-green-500 bg-green-500/20"
-                          : isSelected
-                            ? "border-red-500 bg-red-500/20"
-                            : "border-border/50 bg-muted/30 opacity-50"
-                        : "border-border/50 bg-card hover:border-primary/50 hover:bg-primary/10 cursor-pointer"
+                    ? "opacity-50 cursor-not-allowed border-border/50 bg-muted/30"
+                    : showResult
+                      ? isCorrect
+                        ? "border-green-500 bg-green-500/20"
+                        : isSelected
+                          ? "border-red-500 bg-red-500/20"
+                          : "border-border/50 bg-muted/30 opacity-50"
+                      : "border-border/50 bg-card hover:border-primary/50 hover:bg-primary/10 cursor-pointer"
                     }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${showResult && isCorrect
-                        ? "bg-green-500 text-white"
-                        : showResult && isSelected
-                          ? "bg-red-500 text-white"
-                          : "bg-muted"
+                      ? "bg-green-500 text-white"
+                      : showResult && isSelected
+                        ? "bg-red-500 text-white"
+                        : "bg-muted"
                       }`}>
                       {showResult && isCorrect ? (
                         <CheckCircle className="w-4 h-4" />

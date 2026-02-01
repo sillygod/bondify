@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { NotificationDropdown } from "./NotificationDropdown";
 import { useStats } from "@/contexts/StatsContext";
-import { tokenManager } from "@/lib/api";
+
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -12,12 +12,11 @@ interface HeaderProps {
 
 export const Header = ({ onMenuClick, onStreakClick }: HeaderProps) => {
   const navigate = useNavigate();
-  const { user, stats } = useStats();
+  const { user, stats, isAuthenticated } = useStats();
 
   const displayName = user?.displayName || user?.email?.charAt(0).toUpperCase() || "?";
   const avatarLetter = displayName.charAt(0).toUpperCase();
   const currentStreak = stats?.currentStreak || 0;
-  const isAuthenticated = tokenManager.isAuthenticated();
 
   return (
     <header className="sticky top-0 z-30 glass-card border-b border-border/30 px-4 lg:px-6 py-4" style={{ borderRadius: 0 }}>

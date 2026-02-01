@@ -18,16 +18,30 @@ export interface ConversationMessage {
   correction?: GrammarCorrection;
 }
 
+export interface ScenarioInfo {
+  id: string;
+  name: string;
+  role: string;
+  userRole: string;
+  userGoal: string;
+  vocabulary: string[];
+}
+
 export interface ConversationStartResponse {
   session_id: string;
   opening_message: string;
   topic?: string;
   target_words?: string[];
+  scenario?: string;
+  scenario_name?: string;
+  user_role?: string;
+  user_goal?: string;
 }
 
 export interface ConversationOptions {
   topic?: string;
   targetWords?: string[];
+  scenario?: string;
 }
 
 export interface ConversationResponse {
@@ -46,6 +60,14 @@ export interface ConversationFeedbackResponse {
 let currentSessionId: string | null = null;
 
 /**
+ * Get available conversation scenarios
+ */
+export async function getScenarios(): Promise<ScenarioInfo[]> {
+  const response = await api.get<{ scenarios: ScenarioInfo[] }>('/api/conversation/scenarios');
+  return response.scenarios;
+}
+
+/**
  * Start a new conversation session
  */
 export async function startConversation(
@@ -54,6 +76,7 @@ export async function startConversation(
   const response = await api.post<ConversationStartResponse>('/api/conversation/start', {
     topic: options?.topic,
     target_words: options?.targetWords,
+    scenario: options?.scenario,
   });
   currentSessionId = response.session_id;
   return response;
@@ -127,6 +150,7 @@ export function clearSession(): void {
 }
 
 export default {
+  getScenarios,
   startConversation,
   sendMessage,
   getOpeningMessage,

@@ -6,6 +6,7 @@ import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
 import { useNavigate } from "react-router-dom";
 import { useBrevityQuestions, BrevityQuestion } from "@/hooks/useGameQuestions";
+import { Footer } from "@/components/layout/Footer";
 
 // Fallback mock data
 const mockBrevityData = [
@@ -434,6 +435,9 @@ const Brevity = () => {
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Play Again
               </Button>
+
+              {/* Buy me a coffee - show when score is good */}
+              {score >= 6 && <Footer minimal className="mt-6" />}
             </motion.div>
           )}
         </AnimatePresence>

@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
+
 import {
   BookOpen,
   Target,
@@ -25,14 +25,17 @@ import {
 } from "lucide-react";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { GameCard } from "@/components/dashboard/GameCard";
+import { LearningCurve } from "@/components/dashboard/LearningCurve";
+import { WeaknessReport } from "@/components/dashboard/WeaknessReport";
+import { SRSReviewCard } from "@/components/dashboard/SRSReviewCard";
 import { Button } from "@/components/ui/button";
 import { useStats } from "@/contexts/StatsContext";
-import { tokenManager } from "@/lib/api";
+import { Footer } from "@/components/layout/Footer";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { stats, isLoading } = useStats();
+  const { stats, isLoading, isAuthenticated } = useStats();
   const [isAuthenticated, setIsAuthenticated] = useState(() => tokenManager.isAuthenticated());
 
   // Re-check auth state whenever location changes or component mounts
@@ -51,6 +54,7 @@ const Dashboard = () => {
       clearInterval(interval);
     };
   }, [location.key]);
+
 
   const handleWordClick = (word: string) => {
     navigate(`/word-list?word=${encodeURIComponent(word)}`);
@@ -118,6 +122,20 @@ const Dashboard = () => {
           </motion.div>
         )}
       </section>
+
+      {/* Learning Curve - Only show when authenticated */}
+      {isAuthenticated && (
+        <section>
+          <LearningCurve className="w-full" />
+        </section>
+      )}
+
+      {/* Weakness Report - Only show when authenticated */}
+      {isAuthenticated && (
+        <section>
+          <WeaknessReport className="w-full" />
+        </section>
+      )}
 
       {/* Reading Games Section */}
       <section>
@@ -330,41 +348,15 @@ const Dashboard = () => {
         </div>
       </section>
 
-      {/* Recent Activity */}
-      <section>
-        <motion.h2
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 1.1 }}
-          className="font-display font-semibold text-xl mb-6"
-        >
-          Words Due for Review
-        </motion.h2>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="glass-card rounded-2xl p-6"
-        >
-          <div className="flex flex-wrap gap-3">
-            {["ubiquitous", "ephemeral", "eloquent", "resilient", "meticulous"].map(
-              (word, i) => (
-                <motion.button
-                  key={word}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.7 + i * 0.1 }}
-                  whileHover={{ scale: 1.05 }}
-                  onClick={() => handleWordClick(word)}
-                  className="px-4 py-2 rounded-xl bg-primary/20 border border-primary/30 text-sm font-medium cursor-pointer hover:bg-primary/30 transition-colors"
-                >
-                  {word}
-                </motion.button>
-              )
-            )}
-          </div>
-        </motion.div>
-      </section>
+      {/* SRS Review Section */}
+      {isAuthenticated && (
+        <section>
+          <SRSReviewCard />
+        </section>
+      )}
+
+      {/* Footer with Buy Me a Coffee */}
+      <Footer />
     </div>
   );
 };

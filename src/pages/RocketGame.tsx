@@ -8,6 +8,8 @@ import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useRocketQuestions, RocketQuestion } from "@/hooks/useGameQuestions";
 import { useGameProgress } from "@/hooks/useGameProgress";
 import { useGameSRS } from "@/hooks/useGameSRS";
+import { recordAnswer } from "@/lib/api/analytics";
+import { Footer } from "@/components/layout/Footer";
 
 // Fallback mock data for when API is unavailable
 import { vocabularyData, getRandomSynonyms } from "@/data/vocabulary";
@@ -533,6 +535,17 @@ const RocketGame = () => {
       setTimeout(() => setScreenShake(false), 300);
     }
 
+    // Record answer for weakness analysis
+    recordAnswer({
+      word: currentQuestion.word,
+      gameType: "rocket",
+      isCorrect: correct,
+      partOfSpeech: "noun", // Default, ideally from API
+      questionType: "synonym",
+      userAnswer: answer,
+      correctAnswer: currentQuestion.correctSynonym,
+    }).catch(console.error);
+
     setTimeout(() => {
       if (fuel - (correct ? 0 : FUEL_LOSS) <= 0) {
         setGameState("ended");
@@ -841,6 +854,9 @@ const RocketGame = () => {
                 </Button>
               )}
             </div>
+
+            {/* Buy me a coffee - show when score is good */}
+            {score >= 500 && <Footer minimal className="mt-6" />}
           </motion.div>
         )}
       </AnimatePresence>

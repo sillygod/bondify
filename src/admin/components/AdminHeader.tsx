@@ -1,6 +1,9 @@
+import { useNavigate } from "react-router-dom";
 import { Bell, Search, User } from "lucide-react";
 
 export const AdminHeader = () => {
+    const navigate = useNavigate();
+
     return (
         <header className="h-16 bg-[#0d1321] border-b border-[#1a2744] flex items-center justify-between px-6">
             {/* Search */}
@@ -24,13 +27,19 @@ export const AdminHeader = () => {
                 </div>
 
                 {/* Notifications */}
-                <button className="relative p-2 rounded-lg text-gray-400 hover:bg-[#1a2744] hover:text-white transition-colors">
+                <button
+                    onClick={() => navigate("/admin/notifications")}
+                    className="relative p-2 rounded-lg text-gray-400 hover:bg-[#1a2744] hover:text-white transition-colors"
+                >
                     <Bell className="w-5 h-5" />
                     <span className="absolute top-1 right-1 w-2 h-2 bg-cyan-500 rounded-full" />
                 </button>
 
                 {/* User */}
-                <button className="flex items-center gap-3 p-2 rounded-lg text-gray-400 hover:bg-[#1a2744] hover:text-white transition-colors">
+                <button
+                    onClick={() => navigate("/admin/settings")}
+                    className="flex items-center gap-3 p-2 rounded-lg text-gray-400 hover:bg-[#1a2744] hover:text-white transition-colors"
+                >
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center">
                         <User className="w-4 h-4 text-white" />
                     </div>

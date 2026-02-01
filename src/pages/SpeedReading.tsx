@@ -22,6 +22,7 @@ import { getRandomArticle, Article } from "@/data/speedReadingData";
 import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
 import { useSpeedReadingArticle, SpeedReadingArticle } from "@/hooks/useGameQuestions";
+import { Footer } from "@/components/layout/Footer";
 
 type GameState = "ready" | "countdown" | "playing" | "paused" | "question" | "result" | "ended";
 
@@ -594,6 +595,9 @@ const SpeedReading = () => {
                 Play Again
               </Button>
             </div>
+
+            {/* Buy me a coffee - show when performance is good */}
+            {correctAnswers >= 2 && <Footer minimal className="mt-6" />}
           </motion.div>
         )}
       </AnimatePresence>

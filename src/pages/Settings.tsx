@@ -1,15 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { User, Volume2, VolumeX, GraduationCap, Save, Loader2, Bell, Clock } from "lucide-react";
+import { User, Volume2, VolumeX, GraduationCap, Save, Loader2, Bell, Clock, Cpu, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { getCurrentUser, updateUser, UserProfile } from "@/lib/api/user";
-import { tokenManager } from "@/lib/api";
+import { getAvailableModels, ModelInfo } from "@/lib/api";
+import { useStats } from "@/contexts/StatsContext";
 
 interface UserSettings {
   profile: {
@@ -25,6 +33,11 @@ interface UserSettings {
     time: string;
   };
   learningLevel: "beginner" | "intermediate" | "advanced";
+  ai: {
+    provider: string;
+    apiKey: string;
+    model: string;
+  };
 }
 
 const defaultSettings: UserSettings = {
@@ -41,6 +54,11 @@ const defaultSettings: UserSettings = {
     time: "09:00",
   },
   learningLevel: "intermediate",
+  ai: {
+    provider: "gemini",
+    apiKey: "",
+    model: "",
+  },
 };
 
 const Settings = () => {
@@ -49,20 +67,34 @@ const Settings = () => {
   const [hasChanges, setHasChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const { isAuthenticated } = useStats();
+
+  // AI Model Listing
+  const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
 
   useEffect(() => {
     const loadSettings = async () => {
       // First try to load from localStorage
       const saved = localStorage.getItem("lexicon-settings");
+      let currentSettings = defaultSettings;
+
       if (saved) {
-        setSettings(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        currentSettings = {
+          ...defaultSettings,
+          ...parsed,
+          ai: { ...defaultSettings.ai, ...(parsed.ai || {}) }
+        };
+        setSettings(currentSettings);
       }
 
-      // If authenticated, load from API
-      if (tokenManager.isAuthenticated()) {
+      // If authenticated, load from API overrides
+      if (isAuthenticated) {
         try {
           const user = await getCurrentUser();
-          setSettings({
+          currentSettings = {
+            ...currentSettings,
             profile: {
               name: user.displayName || "",
               email: user.email,
@@ -76,19 +108,70 @@ const Settings = () => {
               time: user.reminderTime || "09:00",
             },
             learningLevel: user.learningLevel,
-          });
+          };
+          setSettings(currentSettings);
         } catch (error) {
           console.error("Error loading user settings:", error);
         }
       }
       setIsLoading(false);
+
+      // Trigger model fetch if key exists
+      if (currentSettings.ai.apiKey && currentSettings.ai.provider) {
+        debouncedFetchModels(currentSettings.ai.provider, currentSettings.ai.apiKey);
+      }
     };
 
     loadSettings();
   }, []);
 
+  // Debounced model fetch
+  const fetchModels = async (provider: string, apiKey: string) => {
+    if (!apiKey || apiKey.length < 5) return;
+
+    setIsLoadingModels(true);
+    try {
+      const response = await getAvailableModels(provider, apiKey);
+      setAvailableModels(response.models);
+
+      // If current model is empty or not in list, maybe select first? 
+      // Checking if strict matching is needed. For now keep existing or default.
+    } catch (error) {
+      console.error("Failed to fetch models:", error);
+      // Optional: don't show toast on auto-fetch to avoid spam, show clear error in UI?
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
+
+  // Create a debounced version of fetchModels
+  const debouncedFetchModels = useCallback((provider: string, apiKey: string) => {
+    // We'll use a simple timeout approach inside useEffect for settings changes
+    // But direct call here for initial load
+    fetchModels(provider, apiKey);
+  }, []);
+
+  // Watch for provider/key changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (settings.ai.provider && settings.ai.apiKey) {
+        fetchModels(settings.ai.provider, settings.ai.apiKey);
+      }
+    }, 800); // 800ms debounce
+
+    return () => clearTimeout(timer);
+  }, [settings.ai.provider, settings.ai.apiKey]);
+
   const updateSettings = (updates: Partial<UserSettings>) => {
     setSettings((prev) => ({ ...prev, ...updates }));
+    setHasChanges(true);
+  };
+
+  const updateAiSettings = (updates: Partial<UserSettings['ai']>) => {
+    setSettings((prev) => ({
+      ...prev,
+      ai: { ...prev.ai, ...updates }
+    }));
     setHasChanges(true);
   };
 
@@ -99,7 +182,7 @@ const Settings = () => {
     localStorage.setItem("lexicon-settings", JSON.stringify(settings));
 
     // If authenticated, save to API
-    if (tokenManager.isAuthenticated()) {
+    if (isAuthenticated) {
       try {
         await updateUser({
           display_name: settings.profile.name || undefined,
@@ -197,10 +280,10 @@ const Settings = () => {
                       profile: { ...settings.profile, email: e.target.value },
                     })
                   }
-                  disabled={tokenManager.isAuthenticated()}
+                  disabled={isAuthenticated}
                   className="bg-secondary/50 border-border/30"
                 />
-                {tokenManager.isAuthenticated() && (
+                {isAuthenticated && (
                   <p className="text-xs text-muted-foreground">Email cannot be changed</p>
                 )}
               </div>
@@ -409,6 +492,115 @@ const Settings = () => {
                   </div>
                 </Label>
               </RadioGroup>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* AI Config Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+        >
+          <Card className="glass-card border-border/30">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-neon-purple/20 flex items-center justify-center">
+                  <Cpu className="w-5 h-5 text-neon-purple" />
+                </div>
+                <div>
+                  <CardTitle>AI Configuration</CardTitle>
+                  <CardDescription>Bring your own API key</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Provider</Label>
+                <RadioGroup
+                  value={settings.ai?.provider || "gemini"}
+                  onValueChange={(val) => updateAiSettings({ provider: val })}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="gemini" id="gemini" />
+                    <Label htmlFor="gemini">Gemini</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="mistral" id="mistral" />
+                    <Label htmlFor="mistral">Mistral</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="apiKey">API Key</Label>
+                <div className="relative">
+                  <Input
+                    id="apiKey"
+                    type="password"
+                    placeholder="Enter your API Key"
+                    value={settings.ai?.apiKey || ""}
+                    onChange={(e) => updateAiSettings({ apiKey: e.target.value })}
+                    className="bg-secondary/50 border-border/30 pr-10"
+                  />
+                  {isLoadingModels && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Your key is stored locally and sent only to the AI provider.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="model">Model Name</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs"
+                    onClick={() => fetchModels(settings.ai.provider, settings.ai.apiKey)}
+                    disabled={isLoadingModels || !settings.ai.apiKey}
+                  >
+                    <RefreshCw className={`w-3 h-3 mr-1 ${isLoadingModels ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
+
+                <Select
+                  value={settings.ai.model}
+                  onValueChange={(val) => updateAiSettings({ model: val })}
+                  disabled={isLoadingModels}
+                >
+                  <SelectTrigger className="bg-secondary/50 border-border/30">
+                    <SelectValue placeholder="Select a model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableModels.length === 0 && settings.ai.model && (
+                      <SelectItem value={settings.ai.model}>{settings.ai.model} (Custom)</SelectItem>
+                    )}
+                    {availableModels.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.name}
+                      </SelectItem>
+                    ))}
+                    {availableModels.length === 0 && !settings.ai.model && (
+                      <div className="p-2 text-sm text-muted-foreground text-center">
+                        {settings.ai.apiKey ? "No models found" : "Enter API Key first"}
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+
+                {settings.ai.model && (
+                  <p className="text-xs text-muted-foreground">
+                    Currently selected: {settings.ai.model}
+                  </p>
+                )}
+              </div>
             </CardContent>
           </Card>
         </motion.div>

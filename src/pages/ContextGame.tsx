@@ -10,6 +10,8 @@ import { useLayoutControl } from "@/hooks/useLayoutControl";
 import { useGameProgress } from "@/hooks/useGameProgress";
 import { useContextQuestions as useApiContextQuestions, ContextQuestion as ApiContextQuestion } from "@/hooks/useGameQuestions";
 import { useGameSRS } from "@/hooks/useGameSRS";
+import { recordAnswer } from "@/lib/api/analytics";
+import { Footer } from "@/components/layout/Footer";
 
 const TOTAL_QUESTIONS = 10;
 
@@ -102,6 +104,17 @@ const ContextGame = () => {
       // Record missed word for SRS
       recordMissedWord(currentQuestion.correctWord, currentQuestion.explanation);
     }
+
+    // Record answer for weakness analysis
+    recordAnswer({
+      word: currentQuestion.correctWord,
+      gameType: "context",
+      isCorrect: correct,
+      partOfSpeech: "noun", // Context game doesn't have POS info
+      questionType: "fill-in-blank",
+      userAnswer: option,
+      correctAnswer: currentQuestion.correctWord,
+    }).catch(console.error);
 
     setTimeout(() => {
       if (currentQuestionIndex + 1 >= TOTAL_QUESTIONS) {
@@ -338,6 +351,9 @@ const ContextGame = () => {
                 </Button>
               )}
             </div>
+
+            {/* Buy me a coffee - show when accuracy is good */}
+            {correctAnswers >= 7 && <Footer minimal className="mt-6" />}
           </motion.div>
         )}
       </AnimatePresence>
