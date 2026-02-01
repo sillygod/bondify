@@ -32,9 +32,9 @@ logger = logging.getLogger(__name__)
 # Constants
 SEEDS_DIR = Path(__file__).parent.parent / "seeds"
 DEFAULT_ADMIN_EMAIL = "admin@bondify.app"
-DEFAULT_ADMIN_PASSWORD = "admin"
+DEFAULT_ADMIN_PASSWORD = "demoadmin"
 DEFAULT_USER_EMAIL = "user@bondify.app"
-DEFAULT_USER_PASSWORD = "user"
+DEFAULT_USER_PASSWORD = "demouser"
 
 
 async def seed_users(session) -> None:

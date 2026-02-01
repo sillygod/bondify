@@ -204,9 +204,6 @@ export const api = {
 
   delete: <T>(endpoint: string, requiresAuth = true) =>
     apiRequest<T>(endpoint, { method: 'DELETE', requiresAuth }),
-
-  patch: <T>(endpoint: string, body?: unknown, requiresAuth = true) =>
-    apiRequest<T>(endpoint, { method: 'PATCH', body, requiresAuth }),
 };
 
 // Health check function

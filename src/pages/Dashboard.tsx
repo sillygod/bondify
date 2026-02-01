@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
+import { tokenManager } from "@/lib/api";
 
 import {
   BookOpen,
@@ -35,7 +37,7 @@ import { Footer } from "@/components/layout/Footer";
 const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { stats, isLoading, isAuthenticated } = useStats();
+  const { stats, isLoading } = useStats();
   const [isAuthenticated, setIsAuthenticated] = useState(() => tokenManager.isAuthenticated());
 
   // Re-check auth state whenever location changes or component mounts
