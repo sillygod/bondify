@@ -29,8 +29,31 @@ from app.api.llm import router as llm_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup and shutdown."""
+    import logging
+    from app.database import async_session_maker
+    
+    logger = logging.getLogger(__name__)
+    
     # Startup
     await init_db()
+    
+    # Run data seeding during startup if enabled (for demo environments)
+    if settings.RUN_SEED_ON_STARTUP:
+        try:
+            from scripts.seed_data import seed_users, seed_vocabulary, seed_questions
+            async with async_session_maker() as session:
+                await seed_users(session)
+                await seed_vocabulary(session)
+                await seed_questions(session)
+                await session.commit()
+                logger.info("Data seeding completed during startup.")
+        except ImportError:
+            logger.warning("Seed data module not found, skipping seeding.")
+        except Exception as e:
+            logger.error(f"Data seeding failed: {e}")
+    else:
+        logger.info("Seeding skipped (RUN_SEED_ON_STARTUP=false)")
+    
     yield
     # Shutdown
     await close_db()

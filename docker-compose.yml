@@ -11,7 +11,7 @@ services:
     volumes:
       - ./backend:/app
       - /app/.venv  # Preserve built .venv, don't overwrite with host
-    command: sh -c "python scripts/seed_data.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     environment:
       - APP_NAME=English Learning API
       - DEBUG=true

@@ -13,7 +13,7 @@ services:
       pip install -r requirements.txt
       mkdir -p data
       alembic upgrade head
-    startCommand: python scripts/seed_data.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     rootDir: backend
     healthCheckPath: /health
     envVars:
@@ -42,3 +42,6 @@ services:
         value: gemini
       - key: GOOGLE_API_KEY
         sync: false  # 在 Render Dashboard 手動設定
+      # Seeding - Demo 站需要每次啟動都 Seed
+      - key: RUN_SEED_ON_STARTUP
+        value: "true"
