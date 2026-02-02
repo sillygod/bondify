@@ -36,7 +36,7 @@ services:
         value: "7"
       # CORS - 設定你的 Cloudflare Pages 網域
       - key: CORS_ORIGINS
-        value: https://bondify.pages.dev,https://your-custom-domain.com
+        value: https://bondify.pages.dev,https://bondify-demo.jgebang.com
       # LLM Provider
       - key: LLM_PROVIDER
         value: gemini

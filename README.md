@@ -1,8 +1,20 @@
 # Bondify - English Learning Application
 
-An AI-powered English learning application with vocabulary games, conversation practice, and progress tracking. Built with React/TypeScript frontend and FastAPI/Python backend, integrated with Google Gemini API.
+Bondify is a personal experimental project dedicated to exploring the English learning. In an era where AI is evolving rapidly, we no longer need to rely solely on traditional one-on-one tutoring. This application leverages AI to act as your personalized language companion, helping you master English through interactive conversation, vocabulary games, and instant feedback.
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jgebang)
+
+> [!NOTE]
+> **Live Demo**: [bondify-demo.jgebang.com](https://bondify-demo.jgebang.com/)
+>
+> **Demo Accounts**:
+> - **User**: `user@bondify.app` / `password: demouser`
+> - **Admin**: `admin@bondify.app` / `password: demoadmin`
+>
+> ⚠️ **Disclaimer**: The demo site is hosted on Render's free tier. The database may reset periodically, clearing all user data. This is purely for demonstration purposes.
+>
+> 🔑 **AI Configuration**: The demo site does **NOT** have an AI API Key configured by default. You can set your own API Key in the [Admin Dashboard](https://bondify-demo.jgebang.com/admin) to test AI generate question features or set key in the client side for conversation practice and other AI features.
+> **Note**: Setting a key in the admin panel makes it usable by **anyone** accessing the demo site. Please proceed with caution.
 
 ## Features
 
@@ -20,6 +32,11 @@ An AI-powered English learning application with vocabulary games, conversation p
 - **Sentence Rephrasing**: Analyze sentences and get rephrasing suggestions
 - **Progress Tracking**: Track learning streaks, XP, and achievements
 - **Admin Interface**: Manage AI-generated questions
+- **Data Seeder**: Automatically populates the database with initial users and content (essential for ephemeral environments)
+
+### Scientific Learning
+- **Spaced Repetition System (SRS)**: Uses the **FSRS algorithm** to schedule vocabulary reviews at optimal intervals, maximizing retention efficiency.
+
 
 ## Documentation
 
@@ -29,6 +46,9 @@ An AI-powered English learning application with vocabulary games, conversation p
 | [TanStack Query](./docs/tanstack-query.md) | Data fetching hooks usage |
 | [Game Questions API](./docs/game-questions.md) | Question types and API endpoints |
 | [Admin Interface](./docs/admin.md) | Admin features documentation |
+| [Spaced Repetition (SRS)](./docs/srs.md) | How the FSRS algorithm works |
+| [Deployment Guide](./docs/deployment.md) | Detailed Cloudflare & Render set up |
+
 
 ## Tech Stack
 
