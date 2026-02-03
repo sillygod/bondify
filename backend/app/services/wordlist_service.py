@@ -53,11 +53,14 @@ class WordlistService:
 
         return words
 
-    async def add_word(self, user_id: int, word: str, notes: Optional[str] = None) -> dict:
+    async def add_word(self, user_id: int, word: str, notes: Optional[str] = None, custom_llm=None) -> dict:
         """
         Add a word to user's wordlist.
 
         If word doesn't exist in vocabulary cache, it will be looked up first.
+        
+        Args:
+            custom_llm: Optional custom LLM instance for BYOK (Bring Your Own Key)
         """
         normalized_word = word.strip().lower()
 
@@ -67,7 +70,7 @@ class WordlistService:
             raise ValueError(f"Word '{word}' is already in your word list")
 
         # Get or create vocabulary cache entry
-        cache_entry = await self._get_or_create_vocabulary(normalized_word)
+        cache_entry = await self._get_or_create_vocabulary(normalized_word, custom_llm=custom_llm)
 
         # Create wordlist entry
         entry = UserWordlist(
@@ -234,7 +237,7 @@ class WordlistService:
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def _get_or_create_vocabulary(self, word: str) -> VocabularyCache:
+    async def _get_or_create_vocabulary(self, word: str, custom_llm=None) -> VocabularyCache:
         """Get vocabulary cache entry, creating if needed via AI lookup."""
         # Check cache first
         stmt = select(VocabularyCache).where(VocabularyCache.word == word)
@@ -245,7 +248,7 @@ class WordlistService:
             return cache_entry
 
         # Lookup via AI and cache
-        definition, _ = await self.vocabulary_service.lookup_word(word)
+        definition, _ = await self.vocabulary_service.lookup_word(word, custom_llm=custom_llm)
 
         # The lookup_word already saves to cache, so fetch it
         result = await self.db.execute(stmt)

@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { recordActivity } from '@/lib/api/progress';
 
 interface UseGameProgressOptions {
@@ -36,6 +37,7 @@ export function useGameProgress({
     wordsLearned = 0,
     xpMultiplier = 0.1,
 }: UseGameProgressOptions): UseGameProgressReturn {
+    const queryClient = useQueryClient();
     const [progressRecorded, setProgressRecorded] = useState(false);
     const [currentStreak, setCurrentStreak] = useState<number | null>(null);
     const [newAchievements, setNewAchievements] = useState<string[]>([]);
@@ -64,13 +66,17 @@ export function useGameProgress({
                     setCurrentStreak(response.currentStreak);
                     setNewAchievements(response.newAchievements || []);
                     console.log("Game progress recorded:", response);
+
+                    // Invalidate stats queries so dashboard will refresh automatically
+                    queryClient.invalidateQueries({ queryKey: ['learning-stats'] });
+                    queryClient.invalidateQueries({ queryKey: ['user'] });
                 } catch (error) {
                     console.error("Failed to record game progress:", error);
                 }
             };
             doRecordProgress();
         }
-    }, [gameState, progressRecorded, score, wordsLearned, xpMultiplier]);
+    }, [gameState, progressRecorded, score, wordsLearned, xpMultiplier, queryClient]);
 
     const resetProgress = useCallback(() => {
         setProgressRecorded(false);

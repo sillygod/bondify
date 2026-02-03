@@ -1,6 +1,7 @@
 """Wordlist API endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
@@ -15,6 +16,7 @@ from app.schemas.wordlist import (
     WordlistUpdateRequest,
 )
 from app.services.wordlist_service import WordlistService
+from app.llm.factory import LLMFactory
 
 router = APIRouter(prefix="/api/wordlist", tags=["wordlist"])
 
@@ -39,19 +41,29 @@ async def add_word(
     request: WordlistAddRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    provider: Optional[str] = Header(None, alias="X-Bondify-AI-Provider"),
+    api_key: Optional[str] = Header(None, alias="X-Bondify-AI-Key"),
+    model: Optional[str] = Header(None, alias="X-Bondify-AI-Model"),
 ):
     """
     Add a word to user's word list.
 
     If the word hasn't been looked up before, it will be fetched from AI.
+    Supports BYOK (Bring Your Own Key) via X-Bondify-AI-* headers.
     """
     service = WordlistService(db)
+
+    # Create custom LLM if user provides API key (BYOK)
+    custom_llm = None
+    if api_key:
+        custom_llm = LLMFactory.create(provider=provider, api_key=api_key, model=model)
 
     try:
         entry = await service.add_word(
             user_id=current_user.id,
             word=request.word,
             notes=request.notes,
+            custom_llm=custom_llm,
         )
         return WordlistEntryResponse(**entry)
     except ValueError as e:
@@ -64,6 +76,7 @@ async def add_word(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"error": "ADD_FAILED", "detail": str(e)},
         )
+
 
 
 @router.delete("/{word}", status_code=status.HTTP_204_NO_CONTENT)

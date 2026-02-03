@@ -19,6 +19,8 @@ class ReadingArticle(BaseModel):
     difficulty_level = Column(
         String(20), default="intermediate", nullable=False
     )  # beginner, intermediate, advanced
+    ai_analysis_json = Column(Text, nullable=True)  # Cached AI analysis
 
     # Relationships
     user = relationship("User", backref="reading_articles")
+

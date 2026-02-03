@@ -98,3 +98,39 @@ export default {
   deleteArticle,
   importFromUrl,
 };
+
+// =============================================================================
+// AI Analysis Types
+// =============================================================================
+
+export interface SuggestedWord {
+  word: string;
+  definition: string;
+  contextSentence: string;
+}
+
+export interface KeyConcept {
+  concept: string;
+  explanation: string;
+}
+
+export interface GrammarHighlight {
+  sentence: string;
+  pattern: string;
+  explanation: string;
+}
+
+export interface ReadingAnalysis {
+  summary: string;
+  suggestedWords: SuggestedWord[];
+  keyConcepts: KeyConcept[];
+  grammarHighlights: GrammarHighlight[];
+  cached: boolean;
+}
+
+/**
+ * Analyze article content using AI
+ */
+export async function analyzeArticle(articleId: number): Promise<ReadingAnalysis> {
+  return api.post<ReadingAnalysis>(`/api/reading/articles/${articleId}/analyze`, {});
+}

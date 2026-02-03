@@ -81,3 +81,54 @@ class UrlImportResponse(BaseModel):
     source_url: str
     word_count: int
 
+
+# =============================================================================
+# AI Analysis Schemas
+# =============================================================================
+
+
+class SuggestedWord(BaseModel):
+    """A vocabulary word suggested for learning."""
+
+    word: str = Field(..., description="The vocabulary word")
+    definition: str = Field(..., description="Clear, concise definition")
+    contextSentence: str = Field(
+        ..., description="Sentence from the article where this word appears"
+    )
+
+
+class KeyConcept(BaseModel):
+    """A key concept extracted from the article."""
+
+    concept: str = Field(..., description="Main idea or concept name")
+    explanation: str = Field(
+        ..., description="Simple explanation in easy-to-understand English"
+    )
+
+
+class GrammarHighlight(BaseModel):
+    """A notable grammar pattern found in the article."""
+
+    sentence: str = Field(..., description="The sentence from the article")
+    pattern: str = Field(..., description="Grammar pattern name")
+    explanation: str = Field(
+        ..., description="Brief explanation of why this structure is notable"
+    )
+
+
+class ReadingAnalysisResponse(BaseModel):
+    """Response schema for AI reading analysis."""
+
+    summary: str = Field(..., description="2-3 sentence summary of the article")
+    suggestedWords: list[SuggestedWord] = Field(
+        default_factory=list, description="Vocabulary words to learn"
+    )
+    keyConcepts: list[KeyConcept] = Field(
+        default_factory=list, description="Key concepts from the article"
+    )
+    grammarHighlights: list[GrammarHighlight] = Field(
+        default_factory=list, description="Notable grammar patterns"
+    )
+    cached: bool = Field(
+        default=False, description="Whether this analysis was loaded from cache"
+    )

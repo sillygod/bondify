@@ -630,6 +630,7 @@ Requirements:
 - targetPartIndex is the index of the part to be quizzed
 - options must include the correct target part value and 3 distractors of the SAME type (e.g., all prefixes)
 - Distractors should be real morphological parts
+- IMPORTANT: options must ONLY contain the affix value itself (e.g., "syn-", "-ize"), do NOT include meanings or brackets like "syn- [together]"
 
 Return ONLY valid JSON array, no other text."""
 
@@ -761,4 +762,59 @@ Requirements:
 - Include words from various categories: academic, food, science, everyday words
 
 Return ONLY valid JSON array, no other text."""
+
+# =============================================================================
+# Reading Analysis Prompts
+# =============================================================================
+
+READING_ANALYSIS_PROMPT = """Analyze the following English article and provide learning assistance.
+
+Article Content:
+{content}
+
+Return a JSON object with this exact structure:
+{{
+  "summary": "A 2-3 sentence summary of the article's main points in simple English.",
+  "suggestedWords": [
+    {{
+      "word": "the vocabulary word",
+      "definition": "clear, concise definition",
+      "contextSentence": "the sentence from the article where this word appears"
+    }}
+  ],
+  "keyConcepts": [
+    {{
+      "concept": "Main idea or concept name",
+      "explanation": "Simple explanation in easy-to-understand English"
+    }}
+  ],
+  "grammarHighlights": [
+    {{
+      "sentence": "An interesting sentence from the article",
+      "pattern": "Grammar pattern name (e.g., 'Passive Voice', 'Subjunctive Mood')",
+      "explanation": "Brief explanation of why this sentence structure is notable"
+    }}
+  ]
+}}
+
+Requirements:
+1. **suggestedWords**: Select 3-6 advanced vocabulary words (CEFR B2-C2 level) that:
+   - Are important for understanding the text
+   - Would be valuable for an English learner to know
+   - Avoid common words like "the", "is", "have"
+   
+2. **keyConcepts**: Extract 2-4 main ideas or arguments from the article
+   - Use simple language to explain complex ideas
+   - Focus on what the reader should take away
+   
+3. **grammarHighlights**: Find 2-3 sentences with notable grammar patterns:
+   - Complex sentence structures (relative clauses, conditionals)
+   - Interesting verb tenses or moods
+   - Effective use of conjunctions or transitions
+   
+4. **summary**: Write 2-3 sentences summarizing the article
+   - Use simple, clear language
+   - Cover the main topic and key points
+
+Return ONLY valid JSON, no other text."""
 

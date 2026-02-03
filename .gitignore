@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
 backend/venv/
+backend/cache/
 backend/.venv/
 
 # UV lock file (optional - can be committed for reproducible builds)

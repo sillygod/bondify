@@ -1,6 +1,8 @@
 """Reading API endpoints."""
 
-from fastapi import APIRouter, HTTPException, status, Query
+import json
+from typing import Optional
+from fastapi import APIRouter, HTTPException, status, Query, Header
 
 from app.api.deps import CurrentUser, DbSession
 from app.schemas.reading import (
@@ -11,9 +13,12 @@ from app.schemas.reading import (
     ArticleUpdateRequest,
     UrlImportRequest,
     UrlImportResponse,
+    ReadingAnalysisResponse,
 )
 from app.services.reading_service import ReadingService
 from app.services.url_extractor import get_url_extractor
+from app.llm.factory import LLMContext, LLMFactory, LLMServiceError
+from app.llm.prompts import READING_ANALYSIS_PROMPT
 
 router = APIRouter(prefix="/api/reading", tags=["reading"])
 
@@ -150,3 +155,87 @@ async def import_from_url(
             detail={"error": "URL_EXTRACTION_ERROR", "message": "Failed to extract content from URL"},
         )
 
+
+@router.post("/articles/{article_id}/analyze", response_model=ReadingAnalysisResponse)
+async def analyze_article(
+    article_id: int,
+    current_user: CurrentUser,
+    db: DbSession,
+    provider: Optional[str] = Header(None, alias="X-Bondify-AI-Provider"),
+    api_key: Optional[str] = Header(None, alias="X-Bondify-AI-Key"),
+    model: Optional[str] = Header(None, alias="X-Bondify-AI-Model"),
+) -> ReadingAnalysisResponse:
+    """
+    Analyze article content using AI.
+    
+    Returns suggested vocabulary, summary, key concepts, and grammar highlights.
+    Results are cached to avoid repeated API calls.
+    
+    Supports BYOK (Bring Your Own Key) via X-Bondify-AI-* headers.
+    Priority: Client API Key -> Admin Settings -> Environment Variables
+    """
+    service = ReadingService(db)
+    article = await service.get_article(article_id, current_user.id)
+    
+    if not article:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": "ARTICLE_NOT_FOUND", "message": "Article not found"},
+        )
+    
+    # Check if we have cached analysis
+    if article.ai_analysis_json:
+        try:
+            cached_data = json.loads(article.ai_analysis_json)
+            cached_data["cached"] = True
+            return ReadingAnalysisResponse(**cached_data)
+        except (json.JSONDecodeError, ValueError):
+            pass  # Invalid cache, regenerate
+    
+    # Generate new analysis using LLM
+    try:
+        prompt = READING_ANALYSIS_PROMPT.format(content=article.content[:8000])  # Limit content length
+        
+        # Check if user provides custom API key (BYOK)
+        if api_key:
+            # Use client-provided API key
+            llm = LLMFactory.create(provider=provider, api_key=api_key, model=model)
+            response = await llm.ainvoke(prompt)
+        else:
+            # Fall back to LLMContext (admin settings -> env variables)
+            async with LLMContext(db, endpoint="reading_analysis") as ctx:
+                response = await ctx.llm.ainvoke(prompt)
+        
+        analysis_text = response.content if hasattr(response, 'content') else str(response)
+        
+        # Parse JSON from response
+        # Handle potential markdown code blocks
+        if "```json" in analysis_text:
+            analysis_text = analysis_text.split("```json")[1].split("```")[0]
+        elif "```" in analysis_text:
+            analysis_text = analysis_text.split("```")[1].split("```")[0]
+        
+        analysis_data = json.loads(analysis_text.strip())
+        
+        # Cache the analysis
+        article.ai_analysis_json = json.dumps(analysis_data)
+        await db.commit()
+        
+        analysis_data["cached"] = False
+        return ReadingAnalysisResponse(**analysis_data)
+        
+    except LLMServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"error": "LLM_SERVICE_ERROR", "message": str(e.message)},
+        )
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "ANALYSIS_PARSE_ERROR", "message": f"Failed to parse AI response: {str(e)}"},
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "ANALYSIS_ERROR", "message": f"Failed to analyze article: {str(e)}"},
+        )

@@ -24,10 +24,11 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { useArticles, useArticle, useCreateArticle, useDeleteArticle } from "@/hooks/useReading";
+import { useArticles, useArticle, useCreateArticle, useDeleteArticle, useArticleAnalysis } from "@/hooks/useReading";
 import { useToast } from "@/hooks/use-toast";
 import { ClickableText } from "@/components/reading/ClickableText";
 import { WordPopover } from "@/components/reading/WordPopover";
+import { ReadingAnalysisPanel } from "@/components/reading/ReadingAnalysisPanel";
 import { lookupWord, WordDefinition } from "@/lib/api/vocabulary";
 import { importFromUrl } from "@/lib/api/reading";
 
@@ -58,6 +59,7 @@ const ReadingMode = () => {
 
     const { data: articleList, isLoading: isLoadingList } = useArticles();
     const { data: article, isLoading: isLoadingArticle } = useArticle(selectedArticleId);
+    const { analysis, isAnalyzing, triggerAnalysis, hasAnalysis } = useArticleAnalysis(selectedArticleId);
     const createArticle = useCreateArticle();
     const deleteArticle = useDeleteArticle();
 
@@ -176,7 +178,7 @@ const ReadingMode = () => {
     // Reading view
     if (selectedArticleId && article) {
         return (
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-7xl mx-auto">
                 {/* Reading Header */}
                 <div className="flex items-center gap-4 mb-6">
                     <Button
@@ -201,22 +203,35 @@ const ReadingMode = () => {
                     </div>
                 </div>
 
-                {/* Article Content */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="glass-card rounded-2xl p-8 relative"
-                >
-                    <p className="text-sm text-muted-foreground mb-4">
-                        💡 Click any word to look up its definition and add to your wordlist
-                    </p>
-                    <div className="prose prose-lg prose-invert max-w-none leading-relaxed">
-                        <ClickableText
-                            text={article.content}
-                            onWordClick={handleWordClick}
+                {/* Two column layout: Article + Analysis */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Article Content - takes 2/3 on large screens */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="lg:col-span-2 glass-card rounded-2xl p-8 relative"
+                    >
+                        <p className="text-sm text-muted-foreground mb-4">
+                            💡 Click any word to look up its definition and add to your wordlist
+                        </p>
+                        <div className="prose prose-lg prose-invert max-w-none leading-relaxed">
+                            <ClickableText
+                                text={article.content}
+                                onWordClick={handleWordClick}
+                            />
+                        </div>
+                    </motion.div>
+
+                    {/* Analysis Panel - takes 1/3 on large screens */}
+                    <div className="lg:col-span-1">
+                        <ReadingAnalysisPanel
+                            analysis={analysis}
+                            isAnalyzing={isAnalyzing}
+                            onAnalyze={triggerAnalysis}
+                            hasAnalyzed={hasAnalysis}
                         />
                     </div>
-                </motion.div>
+                </div>
 
                 {/* Word Popover */}
                 {selectedWord && (

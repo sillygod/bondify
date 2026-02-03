@@ -171,6 +171,11 @@ const WordParts = () => {
 
   const { refetch: fetchApiQuestions } = useWordPartsQuestions(TOTAL_QUESTIONS);
 
+  // Helper to strip any bracketed content from options (e.g., "-ize [verb ending]" -> "-ize")
+  const cleanOption = (option: string): string => {
+    return option.replace(/\s*\[.*?\]\s*/g, '').trim();
+  };
+
   // Convert API question to local Question format
   const convertApiQuestion = (apiQ: WordPartsQuestion): Question => {
     const word: SimpleWord = {
@@ -182,9 +187,12 @@ const WordParts = () => {
     };
     return {
       word,
-      parts: apiQ.parts,
+      parts: apiQ.parts.map(p => ({
+        ...p,
+        value: cleanOption(p.value),
+      })),
       missingPartIndex: apiQ.targetPartIndex,
-      options: apiQ.options,
+      options: apiQ.options.map(cleanOption),
     };
   };
 
