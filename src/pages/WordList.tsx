@@ -15,7 +15,7 @@ import {
   Trash2,
   Check,
 } from "lucide-react";
-import { lookupWord, WordDefinition } from "@/lib/api/vocabulary";
+import { lookupWord, lookupWordStream, WordDefinition } from "@/lib/api/vocabulary";
 import { WordlistEntry } from "@/lib/api/wordlist";
 import { useWordlist, useAddWord, useRemoveWord } from "@/hooks/useWordlist";
 import { cn } from "@/lib/utils";
@@ -40,6 +40,7 @@ const WordList = () => {
   const [selectedWord, setSelectedWord] = useState<WordlistEntry | null>(null);
   const [wordData, setWordData] = useState<WordDefinition | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isApiSearch, setIsApiSearch] = useState(false);
@@ -109,25 +110,34 @@ const WordList = () => {
 
     setSearchError(null);
     setIsLoading(true);
+    setIsStreaming(true);
     setSelectedWord(null);
     setIsApiSearch(true);
+    setWordData(null);
 
-    try {
-      const result = await lookupWord(searchTerm);
-      if (result) {
-        setWordData(result);
-      } else {
-        setSearchError(`Could not find "${searchTerm}". Please try another word.`);
+    // Use streaming API for progressive loading
+    lookupWordStream(
+      searchTerm,
+      // onUpdate - called with partial data
+      (partial) => {
+        setWordData(partial as WordDefinition);
+        setIsLoading(false); // Hide initial loader once we have some data
+      },
+      // onComplete - called when streaming is done
+      (full) => {
+        setIsStreaming(false);
+        if (full) {
+          setWordData(full);
+        }
+      },
+      // onError
+      (error) => {
+        setIsStreaming(false);
+        setIsLoading(false);
+        setSearchError(error || `Error looking up "${searchTerm}". Please try again.`);
         setWordData(null);
       }
-    } catch (error: unknown) {
-      console.error("Error searching word:", error);
-      const errorDetail = (error as { detail?: string })?.detail;
-      setSearchError(errorDetail || `Error looking up "${searchTerm}". Please try again.`);
-      setWordData(null);
-    } finally {
-      setIsLoading(false);
-    }
+    );
   };
 
   const handleAddToWordlist = async () => {
@@ -172,8 +182,9 @@ const WordList = () => {
     }
   };
 
-  const isWordInList = useCallback((word: string) => {
-    return wordlist.some(w => w.word.toLowerCase() === word.toLowerCase());
+  const isWordInList = useCallback((word: string | undefined) => {
+    if (!word) return false;
+    return wordlist.some(w => w.word?.toLowerCase() === word.toLowerCase());
   }, [wordlist]);
 
   return (
@@ -338,8 +349,16 @@ const WordList = () => {
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-4"
               >
+                {/* Streaming indicator */}
+                {isStreaming && (
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-primary/10 border border-primary/30 text-primary text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Loading more content...</span>
+                  </div>
+                )}
+
                 {/* Add to List Button (for API search results) */}
-                {isApiSearch && !isWordInList(wordData.word) && (
+                {isApiSearch && wordData.word && !isWordInList(wordData.word) && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -359,7 +378,7 @@ const WordList = () => {
                   </motion.div>
                 )}
 
-                {isApiSearch && isWordInList(wordData.word) && (
+                {isApiSearch && wordData.word && isWordInList(wordData.word) && (
                   <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 text-center text-sm">
                     <Check className="w-4 h-4 inline mr-2" />
                     This word is already in your list
@@ -373,9 +392,9 @@ const WordList = () => {
                       <div>
                         <CardTitle className="text-2xl flex items-center gap-3 neon-text">
                           <BookOpen className="h-6 w-6 text-primary" />
-                          {wordData.word}
+                          {wordData.word || 'Loading...'}
                         </CardTitle>
-                        <Badge variant="secondary" className="mt-2">{wordData.partOfSpeech}</Badge>
+                        {wordData.partOfSpeech && <Badge variant="secondary" className="mt-2">{wordData.partOfSpeech}</Badge>}
                       </div>
                       {selectedWord?.difficulty && (
                         <Badge variant="outline" className={cn("text-sm", difficultyColors[selectedWord.difficulty])}>
@@ -385,7 +404,7 @@ const WordList = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-lg text-foreground">{wordData.definition}</p>
+                    <p className="text-lg text-foreground">{wordData.definition || 'Loading definition...'}</p>
                   </CardContent>
                 </Card>
 
@@ -400,8 +419,8 @@ const WordList = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => speakWord(wordData.word)}
-                        disabled={isSpeaking}
+                        onClick={() => wordData.word && speakWord(wordData.word)}
+                        disabled={isSpeaking || !wordData.word}
                         className="gap-2"
                       >
                         <Volume2 className={`h-4 w-4 ${isSpeaking ? 'animate-pulse' : ''}`} />
@@ -413,15 +432,15 @@ const WordList = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="bg-muted/50 rounded-lg p-4">
                         <p className="text-sm text-muted-foreground mb-1">IPA</p>
-                        <p className="text-lg font-mono">{wordData.pronunciation.ipa}</p>
+                        <p className="text-lg font-mono">{wordData.pronunciation?.ipa || '...'}</p>
                       </div>
                       <div className="bg-muted/50 rounded-lg p-4">
                         <p className="text-sm text-muted-foreground mb-1">Phonetic Breakdown</p>
-                        <p className="text-lg font-mono">{wordData.pronunciation.phoneticBreakdown}</p>
+                        <p className="text-lg font-mono">{wordData.pronunciation?.phoneticBreakdown || '...'}</p>
                       </div>
                       <div className="bg-muted/50 rounded-lg p-4">
                         <p className="text-sm text-muted-foreground mb-1">Oxford Respelling</p>
-                        <p className="text-lg font-mono">{wordData.pronunciation.oxfordRespelling}</p>
+                        <p className="text-lg font-mono">{wordData.pronunciation?.oxfordRespelling || '...'}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -437,7 +456,7 @@ const WordList = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex flex-wrap gap-3 justify-center">
-                      {wordData.wordStructure.prefix && (
+                      {wordData.wordStructure?.prefix && (
                         <div className="bg-neon-cyan/10 border border-neon-cyan/30 rounded-lg p-4 text-center">
                           <p className="text-sm text-muted-foreground">Prefix</p>
                           <p className="text-xl font-bold text-neon-cyan">{wordData.wordStructure.prefix}</p>
@@ -446,10 +465,10 @@ const WordList = () => {
                       )}
                       <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 text-center">
                         <p className="text-sm text-muted-foreground">Root</p>
-                        <p className="text-xl font-bold text-primary">{wordData.wordStructure.root}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{wordData.wordStructure.rootMeaning}</p>
+                        <p className="text-xl font-bold text-primary">{wordData.wordStructure?.root || '...'}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{wordData.wordStructure?.rootMeaning || ''}</p>
                       </div>
-                      {wordData.wordStructure.suffix && (
+                      {wordData.wordStructure?.suffix && (
                         <div className="bg-neon-orange/10 border border-neon-orange/30 rounded-lg p-4 text-center">
                           <p className="text-sm text-muted-foreground">Suffix</p>
                           <p className="text-xl font-bold text-neon-orange">{wordData.wordStructure.suffix}</p>
@@ -460,7 +479,7 @@ const WordList = () => {
                     <Separator />
                     <div className="bg-muted/30 rounded-lg p-4">
                       <p className="text-sm text-muted-foreground mb-1">Etymology</p>
-                      <p className="text-foreground">{wordData.etymology}</p>
+                      <p className="text-foreground">{wordData.etymology || '...'}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -474,7 +493,7 @@ const WordList = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {wordData.meanings.map((meaning, index) => (
+                    {(wordData.meanings || []).map((meaning, index) => (
                       <div key={index} className="border-l-4 border-primary/50 pl-4 py-2">
                         <h4 className="font-semibold text-foreground">{meaning.context}</h4>
                         <p className="text-muted-foreground mb-2">{meaning.meaning}</p>
@@ -494,7 +513,7 @@ const WordList = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
-                      {wordData.collocations.map((collocation, index) => (
+                      {(wordData.collocations || []).map((collocation, index) => (
                         <Badge key={index} variant="outline" className="text-sm py-1 px-3">
                           {collocation}
                         </Badge>
@@ -522,7 +541,7 @@ const WordList = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {wordData.synonyms.map((synonym, index) => (
+                        {(wordData.synonyms || []).map((synonym, index) => (
                           <TableRow key={index}>
                             <TableCell className="font-medium">{synonym.word}</TableCell>
                             <TableCell>{synonym.meaning}</TableCell>
@@ -578,17 +597,17 @@ const WordList = () => {
                   <CardContent className="space-y-4">
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Learning Tip</p>
-                      <p className="text-foreground font-medium">{wordData.learningTip}</p>
+                      <p className="text-foreground font-medium">{wordData.learningTip || '...'}</p>
                     </div>
                     <Separator />
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Visual Trick</p>
-                      <p className="text-foreground">{wordData.visualTrick}</p>
+                      <p className="text-foreground">{wordData.visualTrick || '...'}</p>
                     </div>
                     <Separator />
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Memory Phrase</p>
-                      <p className="text-foreground italic">"{wordData.memoryPhrase}"</p>
+                      <p className="text-foreground italic">"{wordData.memoryPhrase || '...'}"</p>
                     </div>
                   </CardContent>
                 </Card>

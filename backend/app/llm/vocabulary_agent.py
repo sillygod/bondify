@@ -198,6 +198,31 @@ class VocabularyAgent:
                 raise
             raise LLMServiceError(f"Vocabulary lookup failed: {str(e)}")
 
+    async def lookup_word_stream(self, word: str):
+        """
+        Stream word lookup, yielding raw JSON content chunks.
+        
+        Args:
+            word: The word to look up
+            
+        Yields:
+            str: Raw content chunks from LLM response
+        """
+        if not word or not word.strip():
+            raise ValueError("Word cannot be empty")
+
+        word = word.strip().lower()
+        prompt = VOCABULARY_LOOKUP_PROMPT.format(word=word)
+
+        try:
+            async for chunk in self.llm.astream([HumanMessage(content=prompt)]):
+                if hasattr(chunk, 'content') and chunk.content:
+                    yield chunk.content
+        except Exception as e:
+            if isinstance(e, (LLMServiceError, ValueError)):
+                raise
+            raise LLMServiceError(f"Vocabulary lookup stream failed: {str(e)}")
+
 
 # Singleton instance for reuse
 _vocabulary_agent: Optional[VocabularyAgent] = None
