@@ -11,7 +11,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # Set working directory
 WORKDIR /app
 
-# Copy dependency files
+# Copy dependency files (from root context)
 COPY pyproject.toml uv.lock ./
 
 # Install dependencies using uv (no dev dependencies)
@@ -31,11 +31,11 @@ WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
 
 # Copy alembic configuration
-COPY alembic.ini ./
-COPY alembic/ ./alembic/
+COPY backend/alembic.ini ./
+COPY backend/alembic/ ./alembic/
 
 # Copy application code
-COPY app/ ./app/
+COPY backend/app/ ./app/
 
 # Create data directory for SQLite
 RUN mkdir -p /app/data
