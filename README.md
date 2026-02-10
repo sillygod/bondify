@@ -115,8 +115,36 @@ The easiest way to run the application locally:
    ```bash
    docker-compose down
    ```
+### Option 2: Install via pipx
 
-### Option 2: Manual Setup
+Install Bondify as a CLI tool (includes both frontend and backend):
+
+```bash
+pipx install git+https://github.com/sillygod/bondify.git
+```
+
+Start the server:
+```bash
+bondify serve
+```
+
+> [!NOTE]
+> The SQLite database (`app.db`) is created in **your current working directory**. Run `bondify serve` from a consistent location, or set `DATABASE_URL` to use a fixed path:
+> ```bash
+> export DATABASE_URL="sqlite+aiosqlite:///path/to/your/app.db"
+> bondify serve
+> ```
+
+Available commands:
+```bash
+bondify serve              # Production server
+bondify dev                # Dev server with hot reload
+bondify migrate            # Run database migrations
+bondify db-init            # Initialize database
+bondify --version          # Show version
+```
+
+### Option 3: Manual Setup
 
 #### Prerequisites
 
