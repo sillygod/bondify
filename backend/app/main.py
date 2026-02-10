@@ -147,13 +147,6 @@ async def health_check():
     return {"status": "healthy", "service": settings.APP_NAME}
 
 
-# Root endpoint
-@app.get("/")
-async def root():
-    """Root endpoint."""
-    return {"message": f"Welcome to {settings.APP_NAME}"}
-
-
 # Include routers
 app.include_router(auth_router)
 app.include_router(users_router)
@@ -170,3 +163,42 @@ app.include_router(reading_router)
 app.include_router(analytics_router)
 app.include_router(admin_router)
 app.include_router(llm_router)
+
+
+# Serve bundled frontend static files (when installed via pip)
+# This allows `bondify serve` to serve the frontend without a separate web server
+def _setup_frontend_or_root():
+    """Mount bundled frontend if available, otherwise add root API endpoint."""
+    from pathlib import Path
+
+    frontend_path = Path(__file__).parent / "frontend"
+    if frontend_path.exists() and frontend_path.is_dir():
+        from starlette.staticfiles import StaticFiles
+        from starlette.responses import FileResponse
+
+        class SPAStaticFiles(StaticFiles):
+            """StaticFiles subclass that serves index.html for SPA client-side routes."""
+
+            async def get_response(self, path, scope):
+                try:
+                    response = await super().get_response(path, scope)
+                    if response.status_code == 404:
+                        return FileResponse(self.directory / "index.html")
+                    return response
+                except Exception:
+                    return FileResponse(self.directory / "index.html")
+
+        app.mount(
+            "/",
+            SPAStaticFiles(directory=frontend_path, html=True),
+            name="frontend",
+        )
+    else:
+        # No bundled frontend - show API welcome message
+        @app.get("/")
+        async def root():
+            """Root endpoint."""
+            return {"message": f"Welcome to {settings.APP_NAME}"}
+
+
+_setup_frontend_or_root()
